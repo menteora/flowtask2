@@ -1,5 +1,5 @@
 {
-  "name": "flowtask",
+  "name": "flowtask2",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -9,18 +9,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
-    "html-to-image": "^1.11.11",
-    "lucide-react": "^0.561.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "uuid": "^13.0.0"
+    "lucide-react": "^0.561.0",
+    "uuid": "^13.0.0",
+    "html-to-image": "^1.11.11",
+    "@supabase/supabase-js": "^2.39.0",
+    "rxdb": "16.21.1",
+    "rxjs": "^7.8.1"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.2",
+    "vite": "^7.2.7",
     "@types/react": "^19.2.3",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.2.1",
-    "typescript": "^5.2.2",
-    "vite": "^5.1.4"
+    "typescript": "^5.2.2"
   }
 }
