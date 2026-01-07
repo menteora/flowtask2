@@ -1,17 +1,16 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useTask } from '../../context/TaskContext';
 import { 
-  Database, Download, Key, Cloud, Loader2, User, LogOut, Code, DownloadCloud, Wifi, WifiOff,
-  Settings as SettingsIcon, MessageSquare, Copy, Upload, Trash2, RefreshCw, FileJson, Terminal, Check
+  Database, Download, Key, Cloud, Loader2, LogOut, Upload, Trash2, RefreshCw, FileJson, Terminal, Check, Copy, Wifi, WifiOff, MessageSquare, Settings as SettingsIcon
 } from 'lucide-react';
 
 const SettingsPanel: React.FC = () => {
   const { 
     supabaseConfig, setSupabaseConfig, uploadProjectToSupabase, listProjectsFromSupabase,
-    downloadProjectFromSupabase, deleteProjectFromSupabase, syncAllFromSupabase, pullAllFromSupabase,
-    exportAllToJSON, state, session, logout, disableOfflineMode, enableOfflineMode, showNotification,
+    downloadProjectFromSupabase, deleteProjectFromSupabase,
+    exportAllToJSON, session, logout, disableOfflineMode, enableOfflineMode, showNotification,
     isOfflineMode
   } = useProject();
 
@@ -24,8 +23,6 @@ const SettingsPanel: React.FC = () => {
   const [msgClosing, setMsgClosing] = useState(messageTemplates.closing);
 
   const [isLoadingList, setIsLoadingList] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isPulling, setIsPulling] = useState(false);
   const [remoteProjects, setRemoteProjects] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
@@ -66,27 +63,7 @@ const SettingsPanel: React.FC = () => {
       } finally { setIsUploading(false); }
   };
 
-  const handleSyncAll = async () => {
-    setIsSyncing(true);
-    try {
-      await syncAllFromSupabase();
-      await handleListProjects();
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handlePullAll = async () => {
-    setIsPulling(true);
-    try {
-      await pullAllFromSupabase();
-      await handleListProjects();
-    } finally {
-      setIsPulling(false);
-    }
-  };
-
-  const fullSqlSetup = `-- CONFIGURAZIONE DATABASE FLOWTASK SEMPLIFICATA (SENZA RUOLI)
+  const fullSqlSetup = `-- CONFIGURAZIONE DATABASE FLOWTASK SEMPLIFICATA (DIRETTA)
 
 -- 1. Funzione aggiornamento automatico timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -163,21 +140,7 @@ CREATE TABLE IF NOT EXISTS public.flowtask_people (
     deleted_at TIMESTAMPTZ
 );
 
--- 6. Abilitazione Realtime
-DO $$ 
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
-    CREATE PUBLICATION supabase_realtime;
-  END IF;
-END $$;
-
-ALTER PUBLICATION supabase_realtime ADD TABLE 
-    flowtask_projects, 
-    flowtask_branches, 
-    flowtask_tasks, 
-    flowtask_people;
-
--- 7. Trigger
+-- 6. Trigger
 CREATE TRIGGER tr_updated_at_projects BEFORE UPDATE ON flowtask_projects FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER tr_updated_at_branches BEFORE UPDATE ON flowtask_branches FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER tr_updated_at_tasks BEFORE UPDATE ON flowtask_tasks FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
@@ -245,17 +208,14 @@ CREATE TRIGGER tr_updated_at_people BEFORE UPDATE ON flowtask_people FOR EACH RO
                       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
                           <div className="flex flex-col gap-4 mb-6">
                               <div className="flex items-center justify-between">
-                                  <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-white"><DownloadCloud className="w-5 h-5 text-indigo-500" /> Gestione Cloud</h3>
+                                  <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-white"><Cloud className="w-5 h-5 text-indigo-500" /> Gestione Cloud</h3>
                                   <button onClick={handleUpload} disabled={isUploading} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md disabled:opacity-50 hover:bg-indigo-700 transition-all">
-                                      {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} Carica Corrente
+                                      {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} Carica Progetto Corrente
                                   </button>
                               </div>
-                              <div className="flex flex-wrap gap-2">
-                                  <button onClick={handleSyncAll} disabled={isSyncing} className="flex-1 px-4 py-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 rounded-xl text-xs font-black uppercase tracking-wider border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2">
-                                      {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Sincronizza (Push+Pull)
-                                  </button>
-                                  <button onClick={handlePullAll} disabled={isPulling} className="flex-1 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl text-xs font-black uppercase tracking-wider border border-amber-200 dark:border-amber-800 hover:bg-amber-100 transition-colors flex items-center justify-center gap-2">
-                                      {isPulling ? <Loader2 className="w-4 h-4 animate-spin" /> : <DownloadCloud className="w-4 h-4" />} Scarica dal Cloud (Pull)
+                              <div className="flex gap-2">
+                                  <button onClick={handleListProjects} className="flex-1 px-4 py-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 rounded-xl text-xs font-black uppercase tracking-wider border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2">
+                                      <RefreshCw className="w-4 h-4" /> Aggiorna Lista Cloud
                                   </button>
                               </div>
                           </div>
@@ -271,7 +231,7 @@ CREATE TRIGGER tr_updated_at_people BEFORE UPDATE ON flowtask_people FOR EACH RO
                                       <div key={proj.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 hover:bg-white dark:hover:bg-slate-700 transition-colors group">
                                           <div>
                                               <p className="text-xs font-black text-slate-700 dark:text-slate-200">{proj.name}</p>
-                                              <p className="text-[9px] text-slate-400 uppercase font-bold">{new Date(proj.created_at).toLocaleDateString()}</p>
+                                              <p className="text-[9px] text-slate-400 uppercase font-bold">{new Date(proj.updated_at).toLocaleDateString()}</p>
                                           </div>
                                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                               <button onClick={() => downloadProjectFromSupabase(proj.id)} className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 rounded-lg" title="Scarica"><Download className="w-4 h-4" /></button>
@@ -315,7 +275,7 @@ CREATE TRIGGER tr_updated_at_people BEFORE UPDATE ON flowtask_people FOR EACH RO
                           </button>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                          Copia lo script qui sotto e incollalo nell'editor SQL di Supabase per configurare correttamente le tabelle per la sincronizzazione offline-first.
+                          Copia lo script qui sotto e incollalo nell'editor SQL di Supabase per configurare le tabelle necessarie alla persistenza cloud.
                       </p>
                       <pre className="w-full p-4 bg-slate-900 text-emerald-400 font-mono text-[10px] rounded-xl overflow-x-auto custom-scrollbar max-h-[400px]">
                           {fullSqlSetup}

@@ -211,6 +211,39 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }));
   }, [activeProjectId, isOfflineMode, supabaseClient, session]);
 
+  const reorderProject = useCallback((id: string, direction: 'left' | 'right') => {
+      setProjects(prev => {
+          const idx = prev.findIndex(p => p.id === id);
+          if (idx === -1) return prev;
+          const newIdx = direction === 'left' ? idx - 1 : idx + 1;
+          if (newIdx < 0 || newIdx >= prev.length) return prev;
+          const newArr = [...prev];
+          [newArr[idx], newArr[newIdx]] = [newArr[newIdx], newArr[idx]];
+          return newArr;
+      });
+  }, []);
+
+  const closeProject = useCallback((id: string) => {
+      setProjects(prev => {
+          if (prev.length <= 1) return prev;
+          const filtered = prev.filter(p => p.id !== id);
+          if (activeProjectId === id) setActiveProjectId(filtered[0].id);
+          return filtered;
+      });
+  }, [activeProjectId]);
+
+  const loadProject = useCallback(async (json: any) => {
+      try {
+          if (!json.id || !json.name) throw new Error("JSON non valido");
+          await persistenceService.saveProject(json, isOfflineMode, supabaseClient, session?.user?.id);
+          setProjects(prev => [...prev.filter(p => p.id !== json.id), json]);
+          setActiveProjectId(json.id);
+          showNotification("Progetto importato!", "success");
+      } catch (err) {
+          showNotification("Errore importazione JSON.", "error");
+      }
+  }, [isOfflineMode, supabaseClient, session, showNotification]);
+
   const enableOfflineMode = useCallback(() => {
     setIsOfflineMode(true);
     localStorageService.saveOfflineMode(true);
@@ -249,18 +282,18 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isOfflineMode, loadingAuth, isInitializing, notification, supabaseConfig, supabaseClient,
       setProjects, switchProject, createProject, deleteProject, renameProject, setSupabaseConfig, logout,
       enableOfflineMode, disableOfflineMode, showNotification,
-      reorderProject: (id, dir) => {}, 
-      closeProject: (id) => {}, 
-      loadProject: async (json) => {}, 
+      reorderProject, closeProject, loadProject,
       uploadProjectToSupabase: async () => {
-          if (activeProject) await supabaseService.uploadFullProject(supabaseClient!, activeProject, session.user.id);
+          if (activeProject && supabaseClient && session) await supabaseService.uploadFullProject(supabaseClient, activeProject, session.user.id);
       },
       listProjectsFromSupabase: async () => {
-          const { data } = await supabaseService.fetchProjects(supabaseClient!);
+          if (!supabaseClient) return [];
+          const { data } = await supabaseService.fetchProjects(supabaseClient);
           return data || [];
       },
       downloadProjectFromSupabase: async (id) => {
-          const p = await supabaseService.downloadFullProject(supabaseClient!, id);
+          if (!supabaseClient) return;
+          const p = await supabaseService.downloadFullProject(supabaseClient, id);
           setProjects(prev => {
               const exists = prev.find(item => item.id === p.id);
               return exists ? prev.map(item => item.id === p.id ? p : item) : [...prev, p];
@@ -268,7 +301,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           setActiveProjectId(p.id);
       },
       deleteProjectFromSupabase: async (id) => {
-          await supabaseService.softDeleteProject(supabaseClient!, id);
+          if (supabaseClient) await supabaseService.softDeleteProject(supabaseClient, id);
       }
     }}>
       {children}
