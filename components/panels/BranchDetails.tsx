@@ -4,14 +4,14 @@ import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
 import { BranchStatus, Branch, Person } from '../../types';
-import { STATUS_CONFIG } from '../../constants';
-import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash } from 'lucide-react';
+import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
+import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash, Palette } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import DatePicker from '../ui/DatePicker';
 import Markdown from '../ui/Markdown';
 
 const BranchDetails: React.FC = () => {
-  // @ts-ignore - Some cloud methods might be missing from the project context interface
+  // @ts-ignore
   const { state, session, isOfflineMode, showNotification, listProjectsFromSupabase, getProjectBranchesFromSupabase, moveLocalBranchToRemoteProject } = useProject();
   const { selectedBranchId, selectBranch, updateBranch, deleteBranch, linkBranch, unlinkBranch, toggleBranchArchive } = useBranch();
   const { addTask, updateTask, moveTask, deleteTask, bulkUpdateTasks, bulkMoveTasks, setEditingTask, setReadingTask, showOnlyOpen } = useTask();
@@ -20,6 +20,7 @@ const BranchDetails: React.FC = () => {
   const [localTitle, setLocalTitle] = useState('');
   const [localDescription, setLocalDescription] = useState('');
   const [localStatus, setLocalStatus] = useState<BranchStatus>(BranchStatus.PLANNED);
+  const [localColor, setLocalColor] = useState<string | undefined>(undefined);
   const [localResponsibleId, setLocalResponsibleId] = useState<string | undefined>(undefined);
   const [localStartDate, setLocalStartDate] = useState<string | undefined>(undefined);
   const [localDueDate, setLocalDueDate] = useState<string | undefined>(undefined);
@@ -32,16 +33,13 @@ const BranchDetails: React.FC = () => {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
-  // Markdown Preview State
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   
-  // WYSIWYG State
   const [popupMode, setPopupMode] = useState<'link' | 'email' | null>(null);
   const [popupInput, setPopupInput] = useState('');
   const popupInputRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
-  // Funzioni avanzate: Link e Migrazione
   const [isLinkMode, setIsLinkMode] = useState(false);
   const [linkSearch, setLinkSearch] = useState('');
   const [isMigrateMode, setIsMigrateMode] = useState(false);
@@ -51,7 +49,6 @@ const BranchDetails: React.FC = () => {
   const [selectedRemoteParent, setSelectedRemoteParent] = useState('');
   const [isLoadingRemote, setIsLoadingRemote] = useState(false);
   
-  // Gestione Multi-Task Bulk
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [isBulkMoveMode, setIsBulkMoveMode] = useState(false);
   const [bulkMoveTargetId, setBulkMoveTargetId] = useState('');
@@ -61,6 +58,7 @@ const BranchDetails: React.FC = () => {
       setLocalTitle(branch.title);
       setLocalDescription(branch.description || '');
       setLocalStatus(branch.status);
+      setLocalColor(branch.color);
       setLocalResponsibleId(branch.responsibleId);
       setLocalStartDate(branch.startDate);
       setLocalDueDate(branch.dueDate);
@@ -78,16 +76,35 @@ const BranchDetails: React.FC = () => {
 
   const isDirty = useMemo(() => {
     if (!branch) return false;
-    return localTitle !== branch.title || localDescription !== (branch.description || '') || localStatus !== branch.status || localResponsibleId !== branch.responsibleId || localStartDate !== branch.startDate || localDueDate !== branch.dueDate || localIsLabel !== (branch.isLabel || false) || localIsSprint !== (branch.isSprint || false) || localSprintCounter !== (branch.sprintCounter || 1);
-  }, [branch, localTitle, localDescription, localStatus, localResponsibleId, localStartDate, localDueDate, localIsLabel, localIsSprint, localSprintCounter]);
+    return localTitle !== branch.title || 
+           localDescription !== (branch.description || '') || 
+           localStatus !== branch.status || 
+           localColor !== branch.color ||
+           localResponsibleId !== branch.responsibleId || 
+           localStartDate !== branch.startDate || 
+           localDueDate !== branch.dueDate || 
+           localIsLabel !== (branch.isLabel || false) || 
+           localIsSprint !== (branch.isSprint || false) || 
+           localSprintCounter !== (branch.sprintCounter || 1);
+  }, [branch, localTitle, localDescription, localStatus, localColor, localResponsibleId, localStartDate, localDueDate, localIsLabel, localIsSprint, localSprintCounter]);
 
   const handleSaveAll = () => {
     if (!branch) return;
-    updateBranch(branch.id, { title: localTitle, description: localDescription, status: localStatus, responsibleId: localResponsibleId, startDate: localStartDate, dueDate: localDueDate, isLabel: localIsLabel, isSprint: localIsSprint, sprintCounter: localSprintCounter });
+    updateBranch(branch.id, { 
+      title: localTitle, 
+      description: localDescription, 
+      status: localStatus, 
+      color: localColor,
+      responsibleId: localResponsibleId, 
+      startDate: localStartDate, 
+      dueDate: localDueDate, 
+      isLabel: localIsLabel, 
+      isSprint: localIsSprint, 
+      sprintCounter: localSprintCounter 
+    });
     showNotification("Modifiche salvate con successo.", "success");
   };
 
-  // WYSIWYG Logic
   const insertFormat = (prefix: string, suffix: string, selectionOverride?: string) => {
     if (!descriptionRef.current) return;
     const start = descriptionRef.current.selectionStart;
@@ -168,7 +185,6 @@ const BranchDetails: React.FC = () => {
       }
   }, [selectedRemoteProj]);
 
-  // Fix: Explicitly type potentialParents as Branch[] and provide safety checks for parentIds to resolve type unknown errors
   const potentialParents = useMemo<Branch[]>(() => {
       if (!branch) return [];
       const parentIds = branch.parentIds || [];
@@ -242,6 +258,33 @@ const BranchDetails: React.FC = () => {
             )}
         </div>
 
+        {/* Color Picker */}
+        <div className="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border-b dark:border-slate-700 flex items-center justify-between">
+                <label className="text-[10px] font-black uppercase flex items-center gap-1.5 text-slate-500 dark:text-slate-400"><Palette className="w-3 h-3"/> Colore Ramo</label>
+            </div>
+            <div className="p-3">
+                <div className="flex flex-wrap gap-2.5 justify-center">
+                    {PASTEL_COLORS.map((c) => (
+                        <button
+                            key={c.id}
+                            onClick={() => setLocalColor(c.id === 'default' ? undefined : c.id)}
+                            className={`
+                                group relative w-7 h-7 rounded-full border-2 transition-all flex items-center justify-center
+                                ${c.bg} ${c.border}
+                                ${localColor === c.id || (c.id === 'default' && !localColor) ? 'scale-110 ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900 border-indigo-500' : 'hover:scale-105'}
+                            `}
+                            title={c.label}
+                        >
+                            {(localColor === c.id || (c.id === 'default' && !localColor)) && (
+                                <Check className={`w-3.5 h-3.5 ${c.text || 'text-indigo-500'}`} />
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </div>
+
         {/* Gerarchia & Link */}
         <div className="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
             <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border-b dark:border-slate-700 flex items-center justify-between">
@@ -271,7 +314,6 @@ const BranchDetails: React.FC = () => {
                             <input type="text" value={linkSearch} onChange={(e) => setLinkSearch(e.target.value)} placeholder="Cerca ramo..." className="w-full pl-8 pr-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded outline-none focus:ring-1 focus:ring-indigo-500" />
                         </div>
                         <div className="max-h-32 overflow-y-auto space-y-1">
-                            {/* Fix: Explicitly type 'p' as Branch to avoid 'unknown' type error */}
                             {potentialParents.map((p: Branch) => (
                                 <button key={p.id} onClick={() => handleLinkParent(p.id)} className="w-full text-left p-1.5 text-[11px] hover:bg-indigo-100 dark:hover:bg-indigo-800 rounded flex items-center justify-between group text-slate-700 dark:text-slate-300">
                                     <span className="truncate">{p.title}</span>
@@ -478,7 +520,6 @@ const BranchDetails: React.FC = () => {
                                         <label className="text-[10px] font-black uppercase text-slate-400">2. Scegli Genitore</label>
                                         <select value={selectedRemoteParent} onChange={(e) => setSelectedRemoteParent(e.target.value)} className="w-full p-2 text-xs rounded border border-slate-200 dark:bg-slate-900 dark:border-slate-700 text-slate-800 dark:text-slate-200">
                                             <option value="">Seleziona...</option>
-                                            {/* Fix: Added explicit type b: Branch to resolve 'unknown' property access */}
                                             {remoteBranches.map((b: Branch) => <option key={b.id} value={b.id}>{b.title}</option>)}
                                         </select>
                                     </div>

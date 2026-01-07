@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS public.flowtask_branches (
     title TEXT NOT NULL,
     description TEXT,
     status TEXT DEFAULT 'PLANNED',
+    color TEXT, -- Colore pastello salvato
     responsible_id TEXT,
     start_date TEXT,
     end_date TEXT,

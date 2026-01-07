@@ -37,6 +37,7 @@ export interface Branch {
   title: string;
   description?: string;
   status: BranchStatus;
+  color?: string; // Hex o classe tailwind per il colore pastello
   isLabel?: boolean; 
   isSprint?: boolean; 
   sprintCounter?: number; 

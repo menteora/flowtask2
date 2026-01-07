@@ -3,7 +3,7 @@ import React, { useMemo, useState, useRef } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { Branch, BranchStatus, Task } from '../../types';
-import { STATUS_CONFIG } from '../../constants';
+import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
 import { GanttChart, ChevronRight, ZoomIn, ZoomOut, Folder } from 'lucide-react';
 
 const CELL_WIDTH = 50; 
@@ -12,7 +12,6 @@ const SIDEBAR_WIDTH = 220;
 
 const TimelinePanel: React.FC = () => {
   const { state, projects, switchProject } = useProject();
-  // Using BranchContext for specific branch-related actions and state
   const { selectBranch, showArchived, showAllProjects } = useBranch();
 
   const [zoomLevel, setZoomLevel] = useState(1); 
@@ -29,13 +28,11 @@ const TimelinePanel: React.FC = () => {
 
   const sourceProjects = showAllProjects ? projects : [state];
 
-  // 1. Calculate Daily Completions for Timeline (using Local Time)
   const dailyCompletions = useMemo(() => {
       const counts: Record<string, number> = {};
       sourceProjects.forEach(proj => {
           (Object.values(proj.branches) as Branch[]).forEach(b => {
               b.tasks.forEach(t => {
-                  // STRICT CHECK: ignore tasks without an explicit completion timestamp
                   if (t.completed && t.completedAt) {
                       const completedDate = new Date(t.completedAt);
                       const dateKey = getLocalDateString(completedDate);
@@ -47,7 +44,6 @@ const TimelinePanel: React.FC = () => {
       return counts;
   }, [sourceProjects]);
 
-  // 2. Prepare Branch Data
   const { branches, minDate, maxDate, totalDays } = useMemo(() => {
     let allActiveBranches: (Branch & { projectName: string, projectId: string })[] = [];
 
@@ -226,13 +222,16 @@ const TimelinePanel: React.FC = () => {
               <div className="flex flex-col"> 
                   {branches.map(branch => {
                       const statusConfig = STATUS_CONFIG[branch.status];
+                      const customColor = PASTEL_COLORS.find(c => c.id === branch.color);
+                      const circleColor = customColor ? customColor.text.split(' ')[0].replace('text-', 'bg-') : (statusConfig.color.replace('text-', 'bg-').split(' ')[0] || 'bg-slate-400');
+                      
                       return (
                           <div 
                             key={`${branch.projectId}-${branch.id}`} 
                             className="h-12 border-b border-slate-100 dark:border-slate-800 flex items-center px-3 gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer flex-shrink-0"
                             onClick={() => handleBranchClick(branch)}
                           >
-                              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${statusConfig.color.replace('bg-', 'bg-opacity-100 bg-').split(' ')[1] || 'bg-slate-400'}`}></div>
+                              <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${circleColor}`}></div>
                               <div className="flex flex-col min-w-0 flex-1">
                                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{branch.title}</span>
                                   {showAllProjects && <span className="text-[9px] text-slate-400 truncate flex items-center gap-1"><Folder className="w-2.5 h-2.5" /> {branch.projectName}</span>}
@@ -280,22 +279,26 @@ const TimelinePanel: React.FC = () => {
                           const completed = branch.tasks.filter(t => t.completed).length;
                           const pct = totalTasks > 0 ? (completed / totalTasks) * 100 : 0;
 
-                          let barColor = 'bg-slate-400';
-                          if (branch.status === BranchStatus.ACTIVE) barColor = 'bg-indigo-500';
-                          else if (branch.status === BranchStatus.CLOSED) barColor = 'bg-blue-500';
-                          else if (branch.status === BranchStatus.STANDBY) barColor = 'bg-amber-500';
-                          else if (branch.status === BranchStatus.CANCELLED) barColor = 'bg-red-500';
+                          const customColor = PASTEL_COLORS.find(c => c.id === branch.color);
+                          let barColor = customColor ? customColor.bg.replace('bg-', 'bg-opacity-100 bg-') : 'bg-slate-400';
+                          
+                          if (!customColor) {
+                              if (branch.status === BranchStatus.ACTIVE) barColor = 'bg-indigo-500';
+                              else if (branch.status === BranchStatus.CLOSED) barColor = 'bg-blue-500';
+                              else if (branch.status === BranchStatus.STANDBY) barColor = 'bg-amber-500';
+                              else if (branch.status === BranchStatus.CANCELLED) barColor = 'bg-red-500';
+                          }
 
                           return (
                               <div key={`${branch.projectId}-${branch.id}`} className="h-12 border-b border-transparent relative group">
                                   {dims ? (
                                       <div 
-                                        className={`absolute top-2 h-8 rounded-md shadow-sm cursor-pointer transition-all hover:brightness-110 flex items-center overflow-hidden ${barColor} bg-opacity-80 dark:bg-opacity-60 border border-white/20`}
+                                        className={`absolute top-2 h-8 rounded-md shadow-sm cursor-pointer transition-all hover:brightness-110 flex items-center overflow-hidden ${barColor} bg-opacity-80 dark:bg-opacity-60 border border-black/5 dark:border-white/20`}
                                         style={{ left: dims.x, width: dims.width }}
                                         onClick={() => handleBranchClick(branch)}
                                       >
-                                          <div className="h-full bg-black/20 absolute left-0 top-0 transition-all duration-500" style={{ width: `${pct}%` }} />
-                                          {dims.width > 60 && <span className="relative z-10 px-2 text-xs font-bold text-white truncate drop-shadow-md">{branch.title}</span>}
+                                          <div className="h-full bg-black/10 absolute left-0 top-0 transition-all duration-500" style={{ width: `${pct}%` }} />
+                                          {dims.width > 60 && <span className={`relative z-10 px-2 text-xs font-bold ${customColor ? customColor.text : 'text-white drop-shadow-md'} truncate`}>{branch.title}</span>}
                                       </div>
                                   ) : null}
 

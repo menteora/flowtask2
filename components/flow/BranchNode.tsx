@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Branch, BranchStatus, Person } from '../../types';
-import { STATUS_CONFIG } from '../../constants';
+import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
 import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
@@ -85,6 +85,13 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
   const visibleTasks = isTasksExpanded ? sortedTasks : sortedTasks.slice(0, 3);
   const hiddenTasksCount = sortedTasks.length > 3 ? sortedTasks.length - 3 : 0;
 
+  // Visual Customization
+  const customColor = PASTEL_COLORS.find(c => c.id === branch.color);
+  const nodeBg = customColor ? customColor.bg : 'bg-white dark:bg-slate-800';
+  const nodeBorder = isSelected 
+    ? 'border-indigo-500 ring-2 ring-indigo-500/20' 
+    : (customColor ? customColor.border : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500');
+
   const BranchMoveControls = () => branchId === state.rootBranchId ? null : (
     <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover/node:opacity-100 transition-opacity bg-white dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm z-30">
         <button 
@@ -116,7 +123,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                   flex flex-col
                   ${isSelected 
                     ? (isSprint ? 'bg-indigo-50 dark:bg-indigo-900/10 border-indigo-400 ring-2 ring-indigo-400/20' : 'bg-amber-50 dark:bg-amber-900/10 border-amber-400 ring-2 ring-amber-400/20') 
-                    : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:border-amber-300 dark:hover:border-amber-700'}
+                    : `${nodeBg} ${nodeBorder}`}
                   ${branch.archived ? 'border-dashed opacity-70 grayscale' : ''}
                 `}
                 onClick={(e) => {
@@ -185,11 +192,9 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
       <BranchMoveControls />
       <div 
         className={`
-          relative w-72 bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 
+          relative w-72 ${nodeBg} rounded-xl shadow-sm border-2 
           transition-all duration-200 cursor-pointer hover:shadow-md
-          ${isSelected 
-            ? 'border-indigo-500 ring-2 ring-indigo-500/20' 
-            : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500'}
+          ${nodeBorder}
           ${branch.archived ? 'border-dashed opacity-80 grayscale-[0.5]' : ''}
         `}
         onClick={(e) => {
@@ -197,7 +202,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
           selectBranch(branchId);
         }}
       >
-        <div className={`p-3 border-b border-slate-100 dark:border-slate-700 flex justify-between items-start ${branch.archived ? 'bg-slate-50 dark:bg-slate-800' : ''} relative`}>
+        <div className={`p-3 border-b border-slate-100/50 dark:border-slate-700/50 flex justify-between items-start ${branch.archived ? 'bg-slate-50 dark:bg-slate-800' : ''} relative`}>
           <div className="flex flex-col gap-1 overflow-hidden flex-1 min-w-0 pr-1">
              <h3 className="font-bold text-slate-800 dark:text-slate-100 truncate text-sm flex items-center gap-2" title={branch.title}>
               {branch.title}
@@ -265,7 +270,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                     <div 
                                       onClick={(e) => { e.stopPropagation(); updateTask(branch.id, task.id, { completed: !task.completed }); }}
-                                      className={`flex-shrink-0 w-1.5 h-1.5 rounded-full cursor-pointer hover:scale-150 transition-transform ${task.completed ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`} 
+                                      className={`flex-shrink-0 w-1 h-1 rounded-full cursor-pointer hover:scale-[2] transition-transform ${task.completed ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`} 
                                     />
                                     <span 
                                         onClick={(e) => { e.stopPropagation(); setEditingTask({ branchId: branch.id, taskId: task.id }); }}
