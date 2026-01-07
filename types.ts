@@ -7,6 +7,8 @@ export enum BranchStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export type BranchType = 'standard' | 'label' | 'sprint';
+
 export interface Person {
   id: string;
   name: string;
@@ -37,9 +39,8 @@ export interface Branch {
   title: string;
   description?: string;
   status: BranchStatus;
-  color?: string; // Hex o classe tailwind per il colore pastello
-  isLabel?: boolean; 
-  isSprint?: boolean; 
+  type: BranchType; // Nuovo campo centralizzato
+  color?: string; 
   sprintCounter?: number; 
   responsibleId?: string;
   startDate?: string; 
@@ -56,7 +57,7 @@ export interface Branch {
 }
 
 export interface SyncOperation {
-    id?: number; // Auto-increment in IDB
+    id?: number; 
     entityId: string;
     table: 'flowtask_projects' | 'flowtask_branches' | 'flowtask_tasks' | 'flowtask_people';
     action: 'upsert' | 'delete';

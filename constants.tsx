@@ -24,7 +24,7 @@ export const createInitialProjectState = (name: string = 'Nuovo Progetto'): Proj
         title: 'Inizio Progetto',
         description: 'Punto di partenza del flusso',
         status: BranchStatus.PLANNED,
-        isLabel: true,
+        type: 'label', // Ereditato da isLabel: true
         tasks: [],
         childrenIds: [],
         parentIds: [],
@@ -45,7 +45,6 @@ export const STATUS_CONFIG = {
 };
 
 export const PASTEL_COLORS = [
-  { id: 'default', label: 'Default', hex: 'transparent', bg: 'bg-white dark:bg-slate-800', border: 'border-slate-200 dark:border-slate-700' },
   { id: 'rose', label: 'Rosa', hex: '#fecdd3', bg: 'bg-rose-50 dark:bg-rose-900/20', border: 'border-rose-200 dark:border-rose-800', text: 'text-rose-700 dark:text-rose-300' },
   { id: 'amber', label: 'Ambra', hex: '#fef3c7', bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200 dark:border-amber-800', text: 'text-amber-700 dark:text-amber-300' },
   { id: 'emerald', label: 'Smeraldo', hex: '#d1fae5', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-800', text: 'text-emerald-700 dark:text-emerald-300' },
@@ -54,4 +53,5 @@ export const PASTEL_COLORS = [
   { id: 'violet', label: 'Violetto', hex: '#ede9fe', bg: 'bg-violet-50 dark:bg-violet-900/20', border: 'border-violet-200 dark:border-violet-800', text: 'text-violet-700 dark:text-violet-300' },
   { id: 'orange', label: 'Arancio', hex: '#ffedd5', bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-200 dark:border-orange-800', text: 'text-orange-700 dark:text-orange-300' },
   { id: 'slate', label: 'Grigio', hex: '#f1f5f9', bg: 'bg-slate-100 dark:bg-slate-800', border: 'border-slate-300 dark:border-slate-600', text: 'text-slate-700 dark:text-slate-300' },
+  { id: 'default', label: 'Default', hex: 'transparent', bg: 'bg-white dark:bg-slate-800', border: 'border-slate-200 dark:border-slate-700', text: 'text-slate-500 dark:text-slate-400' },
 ];

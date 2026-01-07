@@ -5,7 +5,7 @@ import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
 import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
-import { Plus, Calendar, Archive, FileText, ChevronDown, ChevronUp, GitMerge, Tag, Eye, CheckCircle2, Zap, RefreshCw, ChevronLeft, ChevronRight, CornerDownRight } from 'lucide-react';
+import { Plus, Calendar, Archive, FileText, ChevronDown, ChevronUp, GitMerge, Tag, Eye, CheckCircle2, Zap, RefreshCw, ChevronLeft, ChevronRight, CornerDownRight, Folder } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 
 interface BranchNodeProps {
@@ -112,8 +112,8 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
     </div>
   );
 
-  if (branch.isLabel || branch.isSprint) {
-      const isSprint = branch.isSprint;
+  if (branch.type === 'label' || branch.type === 'sprint') {
+      const isSprint = branch.type === 'sprint';
       return (
         <div className="flex flex-col items-center group/node relative">
             <BranchMoveControls />
@@ -270,7 +270,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                     <div 
                                       onClick={(e) => { e.stopPropagation(); updateTask(branch.id, task.id, { completed: !task.completed }); }}
-                                      className={`flex-shrink-0 w-1 h-1 rounded-full cursor-pointer hover:scale-[2] transition-transform ${task.completed ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`} 
+                                      className={`flex-shrink-0 w-0.5 h-0.5 rounded-full cursor-pointer hover:scale-[4] transition-transform ${task.completed ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`} 
                                     />
                                     <span 
                                         onClick={(e) => { e.stopPropagation(); setEditingTask({ branchId: branch.id, taskId: task.id }); }}

@@ -1,6 +1,6 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { ProjectState, Branch, Task, Person, BranchStatus } from '../types';
+import { ProjectState, Branch, Task, Person, BranchStatus, BranchType } from '../types';
 
 export const supabaseService = {
   async fetchProjects(client: SupabaseClient) {
@@ -90,10 +90,11 @@ export const supabaseService = {
       branches[b.id] = {
         id: b.id, title: b.title, description: b.description, status: b.status as BranchStatus,
         color: b.color,
+        type: (b.type || (b.is_sprint ? 'sprint' : (b.is_label ? 'label' : 'standard'))) as BranchType,
         tasks: bTasks, childrenIds: b.children_ids || [], parentIds: b.parent_ids || [],
         startDate: b.start_date, endDate: b.end_date, dueDate: b.due_date,
-        archived: b.archived, collapsed: b.collapsed, isLabel: b.is_label,
-        isSprint: b.is_sprint || false, sprintCounter: b.sprint_counter || 1,
+        archived: b.archived, collapsed: b.collapsed,
+        sprintCounter: b.sprint_counter || 1,
         responsibleId: b.responsible_id, position: b.position || 0, version: b.version || 1, updatedAt: b.updated_at
       };
     });
@@ -113,9 +114,10 @@ export const supabaseService = {
     for (const b of Object.values(project.branches)) {
       await this.upsertEntity(client, 'flowtask_branches', {
           id: b.id, project_id: project.id, title: b.title, description: b.description, status: b.status, color: b.color,
+          type: b.type,
           start_date: b.startDate, end_date: b.endDate, due_date: b.dueDate, archived: b.archived,
-          collapsed: b.collapsed, is_label: b.isLabel, is_sprint: b.isSprint || false,
-          sprint_counter: b.sprintCounter || 1, parent_ids: b.parentIds, children_ids: b.childrenIds,
+          collapsed: b.collapsed, sprint_counter: b.sprintCounter || 1, 
+          parent_ids: b.parentIds, children_ids: b.childrenIds,
           responsible_id: b.responsibleId, position: b.position || 0, version: b.version
       });
 

@@ -33,15 +33,14 @@ export const persistenceService = {
         title: branch.title,
         description: branch.description,
         status: branch.status,
-        color: branch.color, // AGGIUNTO PER PERSISTENZA
+        color: branch.color, 
+        type: branch.type, // CENTRALIZZATO
         responsible_id: branch.responsibleId,
         start_date: branch.startDate,
         end_date: branch.endDate,
         due_date: branch.dueDate,
         archived: branch.archived || false,
         collapsed: branch.collapsed || false,
-        is_label: branch.isLabel || false,
-        is_sprint: branch.isSprint || false,
         sprint_counter: branch.sprintCounter || 1,
         parent_ids: branch.parentIds || [],
         children_ids: branch.childrenIds || [],
