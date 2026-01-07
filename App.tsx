@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from './context/ThemeContext';
 import { useProject } from './context/ProjectContext';
@@ -27,7 +28,7 @@ const App: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const { 
     state, projects, activeProjectId, switchProject, reorderProject, createProject, closeProject, deleteProject, renameProject,
-    session, loadingAuth, isInitializing, isOfflineMode, autoSaveStatus, notification, loadProject
+    session, loadingAuth, isInitializing, isOfflineMode, notification, loadProject
   } = useProject();
   
   const { selectedBranchId, showArchived, toggleShowArchived, showAllProjects, toggleShowAllProjects, setAllBranchesCollapsed } = useBranch();
@@ -48,7 +49,6 @@ const App: React.FC = () => {
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [tempProjectName, setTempProjectName] = useState('');
   
-  // Project deletion confirmation state
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
 
   if (isInitializing || (!isOfflineMode && loadingAuth)) {
@@ -161,7 +161,6 @@ const App: React.FC = () => {
                                 </div>
                             </div>
                             
-                            {/* Inline confirmation for deletion */}
                             {deletingProjectId === proj.id && (
                                 <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-lg animate-in zoom-in-95">
                                     <p className="text-xs font-bold text-red-700 dark:text-red-400 text-center mb-2 uppercase tracking-tight">Eliminare definitivamente?</p>
@@ -179,7 +178,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Header Principale */}
       <div className="flex w-full h-14 bg-white dark:bg-slate-900 border-b dark:border-slate-800 items-center justify-between px-4 z-40 shadow-sm flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0 h-full">
           <div className="bg-indigo-600 p-1.5 rounded-lg shadow-sm shrink-0"><GitBranch className="w-5 h-5 text-white" /></div>
@@ -194,13 +192,6 @@ const App: React.FC = () => {
                 <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-indigo-500 transition-colors" />
              </div>
           </button>
-
-          {session && !isOfflineMode && (
-              <div className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 dark:bg-slate-800 rounded text-[10px] transition-colors ml-2 shrink-0">
-                  {autoSaveStatus === 'saving' && <><Loader2 className="w-2.5 h-2.5 animate-spin text-indigo-500" /> <span className="text-indigo-500 font-bold">SAVING</span></>}
-                  {autoSaveStatus === 'saved' && <><Cloud className="w-2.5 h-2.5 text-green-500" /> <span className="text-green-500 font-bold">SYNCED</span></>}
-              </div>
-          )}
         </div>
 
         <div className="hidden md:flex items-center gap-0.5 mx-4">
@@ -224,7 +215,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Barra dei Tab Progetti (Desktop Style IDE) */}
       <div className="hidden md:flex h-10 w-full bg-slate-100 dark:bg-slate-900/50 border-b dark:border-slate-800 items-center px-4 gap-1 z-30 flex-shrink-0 overflow-x-auto no-scrollbar">
          {projects.map((proj, idx) => (
               <div 

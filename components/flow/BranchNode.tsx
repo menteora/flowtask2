@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Branch, BranchStatus, Person } from '../../types';
 import { STATUS_CONFIG } from '../../constants';
@@ -12,7 +13,7 @@ interface BranchNodeProps {
 }
 
 const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
-  const { state, pendingSyncIds } = useProject();
+  const { state } = useProject();
   const { addBranch, selectBranch, selectedBranchId, updateBranch, moveBranch } = useBranch();
   const { setReadingDescriptionId, showOnlyOpen, updateTask, moveTask } = useTask();
   
@@ -21,7 +22,6 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
   
   const isInactive = branch?.status === BranchStatus.CLOSED || branch?.status === BranchStatus.CANCELLED;
   const [isDetailsOpen, setIsDetailsOpen] = useState(!isInactive);
-  const isSyncing = pendingSyncIds.has(branchId);
 
   useEffect(() => {
       if (branch) {
@@ -48,12 +48,10 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
     const b = state.branches[bid];
     if (!b) return undefined;
     
-    // Check if THIS branch has a responsible (and it's not the one we started with, or it IS the one we started with but it's set)
     if (b.responsibleId) {
         return state.people.find(p => p.id === b.responsibleId);
     }
     
-    // Recurse to parent
     if (b.parentIds && b.parentIds.length > 0) {
         return getInheritedResponsible(b.parentIds[0]);
     }
@@ -68,19 +66,16 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   const currentResp = branch.responsibleId ? state.people.find(p => p.id === branch.responsibleId) : undefined;
-  // If no direct responsible, start searching from parents
   const inheritedResp = !branch.responsibleId && branch.parentIds.length > 0 
     ? getInheritedResponsible(branch.parentIds[0]) 
     : undefined;
 
-  // The "Effective" responsible for the branch and its tasks
   const effectiveBranchResp = currentResp || inheritedResp;
 
   const hasDescription = branch.description && branch.description.trim().length > 0;
   const hasChildren = branch.childrenIds.length > 0;
   const isMultiParent = branch.parentIds.length > 1;
 
-  // Trova fratelli per pulsanti spostamento ramo
   const parentId = branch.parentIds[0];
   const parent = parentId ? state.branches[parentId] : null;
   const siblingIndex = parent ? parent.childrenIds.indexOf(branchId) : -1;
@@ -89,12 +84,6 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
 
   const visibleTasks = isTasksExpanded ? sortedTasks : sortedTasks.slice(0, 3);
   const hiddenTasksCount = sortedTasks.length > 3 ? sortedTasks.length - 3 : 0;
-
-  const SyncIndicator = () => isSyncing ? (
-    <div className="absolute -top-2 -right-2 bg-indigo-600 text-white p-1 rounded-full shadow-lg animate-spin z-50">
-        <RefreshCw className="w-3 h-3" />
-    </div>
-  ) : null;
 
   const BranchMoveControls = () => branchId === state.rootBranchId ? null : (
     <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover/node:opacity-100 transition-opacity bg-white dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm z-30">
@@ -135,7 +124,6 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                   selectBranch(branchId);
                 }}
             >
-                <SyncIndicator />
                 <div className="p-2 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                         {isSprint ? (
@@ -209,7 +197,6 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
           selectBranch(branchId);
         }}
       >
-        <SyncIndicator />
         <div className={`p-3 border-b border-slate-100 dark:border-slate-700 flex justify-between items-start ${branch.archived ? 'bg-slate-50 dark:bg-slate-800' : ''} relative`}>
           <div className="flex flex-col gap-1 overflow-hidden flex-1 min-w-0 pr-1">
              <h3 className="font-bold text-slate-800 dark:text-slate-100 truncate text-sm flex items-center gap-2" title={branch.title}>
@@ -270,14 +257,11 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                         const inheritedAssignee = !directAssignee ? effectiveBranchResp : null;
                         const displayAssignee = directAssignee || inheritedAssignee;
 
-                        const taskSyncing = pendingSyncIds.has(task.id);
-                        
-                        // Determina se il task può essere spostato
                         const canMoveUp = taskIdx > 0 && sortedTasks[taskIdx - 1].completed === task.completed;
                         const canMoveDown = taskIdx < sortedTasks.length - 1 && sortedTasks[taskIdx + 1].completed === task.completed;
 
                         return (
-                            <li key={task.id} className={`group/task text-[11px] flex items-center justify-between gap-2 py-0.5 relative ${taskSyncing ? 'opacity-70' : ''}`}>
+                            <li key={task.id} className={`group/task text-[11px] flex items-center justify-between gap-2 py-0.5 relative`}>
                                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                     <div className={`flex-shrink-0 w-1.5 h-1.5 rounded-full ${task.completed ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`} />
                                     <span 
@@ -289,50 +273,44 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                                 </div>
 
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                                    {taskSyncing ? (
-                                        <RefreshCw className="w-2.5 h-2.5 text-indigo-500 animate-spin" />
-                                    ) : (
-                                        <>
-                                            <div className="flex items-center opacity-0 group-hover/task:opacity-100 transition-opacity">
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); moveTask(branch.id, task.id, 'up'); }}
-                                                    disabled={!canMoveUp}
-                                                    className={`p-0.5 ${canMoveUp ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 dark:text-slate-800'}`}
-                                                >
-                                                    <ChevronUp className="w-3 h-3" />
-                                                </button>
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); moveTask(branch.id, task.id, 'down'); }}
-                                                    disabled={!canMoveDown}
-                                                    className={`p-0.5 ${canMoveDown ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 dark:text-slate-800'}`}
-                                                >
-                                                    <ChevronDown className="w-3 h-3" />
-                                                </button>
-                                            </div>
+                                    <div className="flex items-center opacity-0 group-hover/task:opacity-100 transition-opacity">
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); moveTask(branch.id, task.id, 'up'); }}
+                                            disabled={!canMoveUp}
+                                            className={`p-0.5 ${canMoveUp ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 dark:text-slate-800'}`}
+                                        >
+                                            <ChevronUp className="w-3 h-3" />
+                                        </button>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); moveTask(branch.id, task.id, 'down'); }}
+                                            disabled={!canMoveDown}
+                                            className={`p-0.5 ${canMoveDown ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 dark:text-slate-800'}`}
+                                        >
+                                            <ChevronDown className="w-3 h-3" />
+                                        </button>
+                                    </div>
 
-                                            {task.completed && task.completedAt ? (
-                                                <div className="flex items-center text-green-500">
-                                                    <CheckCircle2 className="w-3 h-3" />
-                                                </div>
-                                            ) : task.dueDate ? (
-                                                <div className={`flex items-center gap-0.5 px-1 rounded-sm text-[8px] font-black ${new Date(task.dueDate) < new Date() ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700'}`}>
-                                                    <Calendar className="w-2.5 h-2.5" />
-                                                    <span>{new Date(task.dueDate).getDate()}/{new Date(task.dueDate).getMonth() + 1}</span>
-                                                </div>
-                                            ) : null}
-                                            {displayAssignee && (
-                                                <div className="relative">
-                                                    <Avatar 
-                                                        person={displayAssignee} 
-                                                        size="sm" 
-                                                        className={`w-4 h-4 text-[7px] ${!directAssignee ? 'opacity-40 grayscale border border-dashed border-slate-400' : ''}`} 
-                                                    />
-                                                    {!directAssignee && (
-                                                        <CornerDownRight className="absolute -top-1 -left-1 w-2 h-2 text-indigo-500 bg-white dark:bg-slate-800 rounded-full" />
-                                                    )}
-                                                </div>
+                                    {task.completed && task.completedAt ? (
+                                        <div className="flex items-center text-green-500">
+                                            <CheckCircle2 className="w-3 h-3" />
+                                        </div>
+                                    ) : task.dueDate ? (
+                                        <div className={`flex items-center gap-0.5 px-1 rounded-sm text-[8px] font-black ${new Date(task.dueDate) < new Date() ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700'}`}>
+                                            <Calendar className="w-2.5 h-2.5" />
+                                            <span>{new Date(task.dueDate).getDate()}/{new Date(task.dueDate).getMonth() + 1}</span>
+                                        </div>
+                                    ) : null}
+                                    {displayAssignee && (
+                                        <div className="relative">
+                                            <Avatar 
+                                                person={displayAssignee} 
+                                                size="sm" 
+                                                className={`w-4 h-4 text-[7px] ${!directAssignee ? 'opacity-40 grayscale border border-dashed border-slate-400' : ''}`} 
+                                            />
+                                            {!directAssignee && (
+                                                <CornerDownRight className="absolute -top-1 -left-1 w-2 h-2 text-indigo-500 bg-white dark:bg-slate-800 rounded-full" />
                                             )}
-                                        </>
+                                        </div>
                                     )}
                                 </div>
                             </li>

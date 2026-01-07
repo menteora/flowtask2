@@ -1,46 +1,69 @@
-// Added React import to resolve missing namespace error
+
 import React, { useCallback } from 'react';
-import { SupabaseClient } from '@supabase/supabase-js';
 import { ProjectState } from '../types';
-import { persistenceService } from '../services/persistence';
-import { dbService } from '../services/db';
 import { createInitialProjectState } from '../constants';
+import { FlowTaskDatabase } from '../services/rxdb';
 
 export const useProjectActions = (
-  setProjects: React.Dispatch<React.SetStateAction<ProjectState[]>>,
+  db: FlowTaskDatabase | null,
   activeProjectId: string,
   setActiveProjectId: (id: string) => void,
-  isOfflineMode: boolean,
-  supabaseClient: SupabaseClient | null
 ) => {
   
   const createProject = useCallback(async () => {
-    const np = createInitialProjectState();
-    setProjects(prev => [...prev, np]);
-    setActiveProjectId(np.id);
-    await dbService.saveProject(np);
-    persistenceService.saveProject(np, isOfflineMode, supabaseClient);
-  }, [isOfflineMode, supabaseClient, setProjects, setActiveProjectId]);
+    if (!db) return;
+    const def = createInitialProjectState();
+    const now = new Date().toISOString();
+    
+    // Inserimento progetto in RxDB
+    await db.projects.insert({
+        id: def.id,
+        name: def.name,
+        root_branch_id: def.rootBranchId,
+        version: 1,
+        updated_at: now
+    });
 
-  const updateProject = useCallback((updates: Partial<ProjectState>) => {
-    setProjects(prev => prev.map(p => {
-      if (p.id !== activeProjectId) return p;
-      const nextState = { ...p, ...updates, updatedAt: new Date().toISOString() };
-      persistenceService.saveProject(nextState, isOfflineMode, supabaseClient);
-      return nextState;
-    }));
-  }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
+    // Inserimento root branch in RxDB
+    const rootBranch = def.branches[def.rootBranchId];
+    await db.branches.insert({
+        id: rootBranch.id,
+        project_id: def.id,
+        title: rootBranch.title,
+        description: rootBranch.description,
+        status: rootBranch.status,
+        is_label: true,
+        parent_ids: [],
+        children_ids: [],
+        position: 0,
+        version: 1,
+        updated_at: now
+    });
+
+    setActiveProjectId(def.id);
+  }, [db, setActiveProjectId]);
+
+  const renameProject = useCallback(async (name: string) => {
+    if (!db || !activeProjectId) return;
+    const doc = await db.projects.findOne(activeProjectId).exec();
+    if (doc) {
+        await doc.patch({ 
+            name, 
+            updated_at: new Date().toISOString() 
+        });
+    }
+  }, [db, activeProjectId]);
 
   const deleteProject = useCallback(async (id: string) => {
-    if (confirm("Eliminare definitivamente questo progetto dal database locale?")) {
-      await dbService.deleteProject(id); 
-      setProjects(p => p.filter(x => x.id !== id)); 
+    if (!db) return;
+    if (confirm("Eliminare definitivamente questo progetto e tutti i suoi rami dal database locale?")) {
+        const doc = await db.projects.findOne(id).exec();
+        if (doc) {
+            // Soft delete: segniamo come eliminato per la sincronizzazione
+            await doc.patch({ deleted_at: new Date().toISOString() });
+        }
     }
-  }, [setProjects]);
+  }, [db]);
 
-  const renameProject = useCallback((name: string) => {
-    updateProject({ name });
-  }, [updateProject]);
-
-  return { createProject, updateProject, deleteProject, renameProject };
+  return { createProject, deleteProject, renameProject };
 };
