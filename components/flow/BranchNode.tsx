@@ -15,7 +15,7 @@ interface BranchNodeProps {
 const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
   const { state } = useProject();
   const { addBranch, selectBranch, selectedBranchId, updateBranch, moveBranch } = useBranch();
-  const { setReadingDescriptionId, showOnlyOpen, updateTask, moveTask } = useTask();
+  const { setReadingDescriptionId, showOnlyOpen, updateTask, moveTask, setEditingTask } = useTask();
   
   const [isTasksExpanded, setIsTasksExpanded] = useState(false);
   const branch = state.branches[branchId];
@@ -263,10 +263,13 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                         return (
                             <li key={task.id} className={`group/task text-[11px] flex items-center justify-between gap-2 py-0.5 relative`}>
                                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                    <div className={`flex-shrink-0 w-1.5 h-1.5 rounded-full ${task.completed ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                                    <div 
+                                      onClick={(e) => { e.stopPropagation(); updateTask(branch.id, task.id, { completed: !task.completed }); }}
+                                      className={`flex-shrink-0 w-1.5 h-1.5 rounded-full cursor-pointer hover:scale-150 transition-transform ${task.completed ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`} 
+                                    />
                                     <span 
-                                        onClick={(e) => { e.stopPropagation(); updateTask(branch.id, task.id, { completed: !task.completed }); }}
-                                        className={`truncate text-slate-600 dark:text-slate-300 cursor-pointer ${task.completed ? 'line-through opacity-60' : ''}`}
+                                        onClick={(e) => { e.stopPropagation(); setEditingTask({ branchId: branch.id, taskId: task.id }); }}
+                                        className={`truncate text-slate-600 dark:text-slate-300 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors ${task.completed ? 'line-through opacity-60' : ''}`}
                                     >
                                         {task.title}
                                     </span>
