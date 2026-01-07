@@ -5,7 +5,7 @@ import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
 import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
-import { Plus, Calendar, Archive, FileText, ChevronDown, ChevronUp, GitMerge, Tag, Eye, CheckCircle2, Zap, RefreshCw, ChevronLeft, ChevronRight, CornerDownRight, Folder } from 'lucide-react';
+import { Plus, Calendar, Archive, FileText, ChevronDown, ChevronUp, GitMerge, Tag, Eye, CheckCircle2, Zap, RefreshCw, ChevronLeft, ChevronRight, CornerDownRight, Folder, Compass, Quote, ChevronsDown, ChevronsUp } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 
 interface BranchNodeProps {
@@ -93,36 +93,71 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
     : (customColor ? customColor.border : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500');
 
   const BranchMoveControls = () => branchId === state.rootBranchId ? null : (
-    <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover/node:opacity-100 transition-opacity bg-white dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm z-30">
+    <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover/node:opacity-100 transition-opacity bg-white dark:bg-slate-800 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl z-30">
         <button 
             onClick={(e) => { e.stopPropagation(); moveBranch(branchId, 'prev'); }}
             disabled={!canMoveLeft}
-            className={`p-1 rounded ${canMoveLeft ? 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700' : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'}`}
+            className={`p-1 rounded-lg ${canMoveLeft ? 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700' : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'}`}
         >
-            <ChevronLeft className="w-3.5 h-3.5" />
+            <ChevronLeft className="w-4 h-4" />
         </button>
-        <div className="w-px h-3 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1" />
         <button 
             onClick={(e) => { e.stopPropagation(); moveBranch(branchId, 'next'); }}
             disabled={!canMoveRight}
-            className={`p-1 rounded ${canMoveRight ? 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700' : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'}`}
+            className={`p-1 rounded-lg ${canMoveRight ? 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700' : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'}`}
         >
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4" />
         </button>
     </div>
   );
 
-  if (branch.type === 'label' || branch.type === 'sprint') {
+  const CollapseButton = () => {
+    if (!hasChildren) return null;
+    return (
+        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-20">
+             <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    updateBranch(branchId, { collapsed: !branch.collapsed });
+                }}
+                className={`
+                    w-6 h-6 rounded-full border border-slate-300 shadow-md flex items-center justify-center transition-all duration-300
+                    ${branch.collapsed 
+                        ? 'bg-indigo-600 border-indigo-500 text-white scale-110 hover:bg-indigo-700' 
+                        : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 text-slate-500 dark:text-slate-300 hover:scale-105'}
+                `}
+                title={branch.collapsed ? "Espandi rami" : "Comprimi rami"}
+             >
+                 {branch.collapsed ? <ChevronsDown className="w-3.5 h-3.5" /> : <ChevronsUp className="w-3.5 h-3.5" />}
+                 
+                 {branch.collapsed && (
+                     <div className="absolute -right-1.5 -top-1.5 bg-rose-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-slate-800 shadow-sm animate-in zoom-in duration-300">
+                         {branch.childrenIds.length}
+                     </div>
+                 )}
+             </button>
+        </div>
+    );
+  };
+
+  // --- SPECIAL TYPES RENDERING (Label, Sprint, Objective) ---
+  if (branch.type === 'label' || branch.type === 'sprint' || branch.type === 'objective') {
       const isSprint = branch.type === 'sprint';
+      const isObjective = branch.type === 'objective';
+      const isLabel = branch.type === 'label';
+
       return (
         <div className="flex flex-col items-center group/node relative">
             <BranchMoveControls />
             <div 
                 className={`
-                  relative w-56 rounded-lg shadow-sm border-2 transition-all duration-200 cursor-pointer hover:shadow-md
-                  flex flex-col
+                  relative w-64 rounded-lg shadow-sm border-2 transition-all duration-200 cursor-pointer hover:shadow-md
+                  flex flex-col overflow-hidden
                   ${isSelected 
-                    ? (isSprint ? 'bg-indigo-50 dark:bg-indigo-900/10 border-indigo-400 ring-2 ring-indigo-400/20' : 'bg-amber-50 dark:bg-amber-900/10 border-amber-400 ring-2 ring-amber-400/20') 
+                    ? (isSprint ? 'bg-indigo-50 dark:bg-indigo-900/10 border-indigo-400 ring-2 ring-indigo-400/20' : 
+                       isObjective ? 'bg-cyan-50 dark:bg-cyan-900/10 border-cyan-400 ring-2 ring-cyan-400/20' :
+                       'bg-amber-50 dark:bg-amber-900/10 border-amber-400 ring-2 ring-amber-400/20') 
                     : `${nodeBg} ${nodeBorder}`}
                   ${branch.archived ? 'border-dashed opacity-70 grayscale' : ''}
                 `}
@@ -131,14 +166,12 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                   selectBranch(branchId);
                 }}
             >
-                <div className="p-2 flex items-center justify-between gap-2">
+                <div className="p-2.5 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                        {isSprint ? (
-                            <Zap className={`w-4 h-4 shrink-0 ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
-                        ) : (
-                            <Tag className={`w-4 h-4 shrink-0 ${isSelected ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`} />
-                        )}
-                        <span className="font-bold text-sm text-slate-700 dark:text-slate-200 truncate" title={branch.title}>
+                        {isSprint && <Zap className={`w-4 h-4 shrink-0 ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />}
+                        {isLabel && <Tag className={`w-4 h-4 shrink-0 ${isSelected ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`} />}
+                        {isObjective && <Compass className={`w-4 h-4 shrink-0 ${isSelected ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400'}`} />}
+                        <span className={`font-black text-sm uppercase tracking-tight truncate ${isObjective ? 'text-cyan-700 dark:text-cyan-300' : 'text-slate-700 dark:text-slate-200'}`} title={branch.title}>
                             {branch.title}
                         </span>
                     </div>
@@ -149,19 +182,16 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                     )}
                 </div>
 
-                {hasChildren && (
-                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-20">
-                         <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                updateBranch(branchId, { collapsed: !branch.collapsed });
-                            }}
-                            className="w-6 h-6 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 shadow-sm flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-300 transition-colors"
-                         >
-                             {branch.collapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-                         </button>
+                {isObjective && hasDescription && (
+                    <div className="px-3 pb-3 pt-1 border-t border-cyan-100 dark:border-cyan-900/30 bg-cyan-50/30 dark:bg-cyan-900/5">
+                        <p className="text-[11px] text-cyan-600 dark:text-cyan-400 italic font-medium leading-tight line-clamp-3 relative pl-3">
+                            <Quote className="w-2 h-2 absolute left-0 top-0 opacity-40 rotate-180" />
+                            {branch.description}
+                        </p>
                     </div>
                 )}
+
+                <CollapseButton />
             </div>
 
             <div className="h-6 w-px bg-slate-300 dark:bg-slate-600"></div>
@@ -172,10 +202,10 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                     if (branch.collapsed) updateBranch(branchId, { collapsed: false });
                     addBranch(branchId);
                 }}
-                className="w-5 h-5 rounded-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-500 flex items-center justify-center hover:bg-indigo-50 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-300 transition-colors z-10"
+                className="w-6 h-6 rounded-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-500 flex items-center justify-center hover:bg-indigo-50 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-300 transition-colors z-10"
                 title="Aggiungi sotto-ramo"
             >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-3.5 h-3.5" />
             </button>
             
             {!branch.collapsed && branch.childrenIds.length > 0 && (
@@ -346,19 +376,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
             </div>
         )}
 
-        {hasChildren && (
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-20">
-                 <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        updateBranch(branchId, { collapsed: !branch.collapsed });
-                    }}
-                    className="w-6 h-6 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 shadow-sm flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-300 transition-colors"
-                 >
-                     {branch.collapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-                 </button>
-            </div>
-        )}
+        <CollapseButton />
       </div>
 
       <div className="h-8 w-px bg-slate-300 dark:bg-slate-600"></div>

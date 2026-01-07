@@ -4,7 +4,7 @@ import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
 import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
-import { ChevronRight, ChevronDown, Plus, FileText, CheckSquare, Square, Archive, GitBranch, ChevronUp, Tag, Calendar, CheckCircle2, ChevronsDown, ChevronsUp, Layers, RefreshCw, Zap, ArrowUp, ArrowDown, Folder } from 'lucide-react';
+import { ChevronRight, ChevronDown, Plus, FileText, CheckSquare, Square, Archive, GitBranch, ChevronUp, Tag, Calendar, CheckCircle2, ChevronsDown, ChevronsUp, Layers, RefreshCw, Zap, ArrowUp, ArrowDown, Folder, Compass } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 
 interface FolderNodeProps {
@@ -65,7 +65,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
   };
 
   const customColor = PASTEL_COLORS.find(c => c.id === branch.color);
-  const iconColorClass = branch.type === 'label' ? 'text-amber-500' : (branch.type === 'sprint' ? 'text-indigo-500' : (customColor ? customColor.text : statusConfig.color));
+  const iconColorClass = branch.type === 'label' ? 'text-amber-500' : (branch.type === 'sprint' ? 'text-indigo-500' : (branch.type === 'objective' ? 'text-cyan-500' : (customColor ? customColor.text : statusConfig.color)));
 
   return (
     <div className={`flex flex-col select-none`}>
@@ -86,7 +86,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
         </button>
 
         <div className={`${iconColorClass} bg-transparent p-0 relative`}>
-             {branch.type === 'label' ? <Tag className="w-4 h-4" /> : (branch.type === 'sprint' ? <Zap className="w-4 h-4" /> : <GitBranch className="w-4 h-4" />)}
+             {branch.type === 'label' ? <Tag className="w-4 h-4" /> : (branch.type === 'sprint' ? <Zap className="w-4 h-4" /> : (branch.type === 'objective' ? <Compass className="w-4 h-4" /> : <GitBranch className="w-4 h-4" />))}
              {branch.archived && (
                  <div className="absolute -bottom-1 -right-1 bg-gray-200 dark:bg-gray-700 rounded-full p-0.5">
                      <Archive className="w-2 h-2 text-gray-500" />
@@ -99,7 +99,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
                  <span className={`font-medium text-xs truncate ${isSelected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-200'}`}>
                     {branch.title}
                  </span>
-                 {branch.type !== 'label' && (
+                 {branch.type !== 'label' && branch.type !== 'objective' && (
                      <span className={`text-[8px] px-1.5 rounded-full border border-current opacity-70 ${statusConfig.color} bg-transparent font-black`}>
                         {branch.status}
                      </span>

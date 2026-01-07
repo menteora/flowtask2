@@ -192,6 +192,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const deleteProject = useCallback(async (id: string) => {
       if (confirm("Eliminare definitivamente?")) {
+          // Fixed: used supabaseClient instead of client and removed extra userId argument to match persistenceService.deleteProject signature
           await persistenceService.deleteProject(id, isOfflineMode, supabaseClient);
           setProjects(prev => {
               const filtered = prev.filter(p => p.id !== id);
@@ -200,7 +201,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           });
           showNotification("Progetto eliminato.", "success");
       }
-  }, [isOfflineMode, supabaseClient, activeProjectId, showNotification]);
+  }, [isOfflineMode, supabaseClient, activeProjectId, showNotification, session]);
 
   const renameProject = useCallback(async (name: string) => {
       setProjects(prev => prev.map(p => {
@@ -285,6 +286,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setProjects, switchProject, createProject, deleteProject, renameProject, setSupabaseConfig, logout,
       enableOfflineMode, disableOfflineMode, showNotification,
       reorderProject, closeProject, loadProject,
+      // Added missing exportAllToJSON to satisfy ProjectContextType
+      exportAllToJSON,
       uploadProjectToSupabase: async () => {
           if (activeProject && supabaseClient && session) await supabaseService.uploadFullProject(supabaseClient, activeProject, session.user.id);
       },
