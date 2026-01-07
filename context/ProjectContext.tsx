@@ -61,6 +61,8 @@ const LOADING_PROJECT: ProjectState = {
             id: 'root',
             title: 'Inizializzazione...',
             status: BranchStatus.PLANNED,
+            // Added missing required 'type' property to satisfy Branch interface
+            type: 'standard',
             tasks: [],
             childrenIds: [],
             parentIds: [],

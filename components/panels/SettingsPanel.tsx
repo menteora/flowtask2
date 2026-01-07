@@ -63,7 +63,7 @@ const SettingsPanel: React.FC = () => {
       } finally { setIsUploading(false); }
   };
 
-  const fullSqlSetup = `-- CONFIGURAZIONE DATABASE FLOWTASK SEMPLIFICATA (DIRETTA)
+  const fullSqlSetup = `-- CONFIGURAZIONE DATABASE FLOWTASK REFEACTORED (DIRETTA)
 
 -- 1. Funzione aggiornamento automatico timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -92,15 +92,14 @@ CREATE TABLE IF NOT EXISTS public.flowtask_branches (
     title TEXT NOT NULL,
     description TEXT,
     status TEXT DEFAULT 'PLANNED',
-    color TEXT, -- Colore pastello salvato
+    type TEXT DEFAULT 'standard', -- Nuovo campo centralizzato (standard, label, sprint)
+    color TEXT, 
     responsible_id TEXT,
     start_date TEXT,
     end_date TEXT,
     due_date TEXT,
     archived BOOLEAN DEFAULT FALSE,
     collapsed BOOLEAN DEFAULT FALSE,
-    is_label BOOLEAN DEFAULT FALSE,
-    is_sprint BOOLEAN DEFAULT FALSE,
     sprint_counter INTEGER DEFAULT 1,
     parent_ids TEXT[] DEFAULT '{}',
     children_ids TEXT[] DEFAULT '{}',

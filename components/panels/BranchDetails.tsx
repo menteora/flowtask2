@@ -3,9 +3,9 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
-import { BranchStatus, Branch, Person } from '../../types';
+import { BranchStatus, Branch, Person, BranchType } from '../../types';
 import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
-import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash, Palette } from 'lucide-react';
+import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash, Palette, Folder } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import DatePicker from '../ui/DatePicker';
 import Markdown from '../ui/Markdown';
@@ -20,12 +20,11 @@ const BranchDetails: React.FC = () => {
   const [localTitle, setLocalTitle] = useState('');
   const [localDescription, setLocalDescription] = useState('');
   const [localStatus, setLocalStatus] = useState<BranchStatus>(BranchStatus.PLANNED);
+  const [localType, setLocalType] = useState<BranchType>('standard');
   const [localColor, setLocalColor] = useState<string | undefined>(undefined);
   const [localResponsibleId, setLocalResponsibleId] = useState<string | undefined>(undefined);
   const [localStartDate, setLocalStartDate] = useState<string | undefined>(undefined);
   const [localDueDate, setLocalDueDate] = useState<string | undefined>(undefined);
-  const [localIsLabel, setLocalIsLabel] = useState(false);
-  const [localIsSprint, setLocalIsSprint] = useState(false);
   const [localSprintCounter, setLocalSprintCounter] = useState(1);
 
   const [isBulkMode, setIsBulkMode] = useState(false);
@@ -58,12 +57,11 @@ const BranchDetails: React.FC = () => {
       setLocalTitle(branch.title);
       setLocalDescription(branch.description || '');
       setLocalStatus(branch.status);
+      setLocalType(branch.type || 'standard');
       setLocalColor(branch.color);
       setLocalResponsibleId(branch.responsibleId);
       setLocalStartDate(branch.startDate);
       setLocalDueDate(branch.dueDate);
-      setLocalIsLabel(branch.isLabel || false);
-      setLocalIsSprint(branch.isSprint || false);
       setLocalSprintCounter(branch.sprintCounter || 1);
       setBulkText(branch.tasks.map(t => t.title).join('\n'));
       
@@ -79,14 +77,13 @@ const BranchDetails: React.FC = () => {
     return localTitle !== branch.title || 
            localDescription !== (branch.description || '') || 
            localStatus !== branch.status || 
+           localType !== (branch.type || 'standard') ||
            localColor !== branch.color ||
            localResponsibleId !== branch.responsibleId || 
            localStartDate !== branch.startDate || 
            localDueDate !== branch.dueDate || 
-           localIsLabel !== (branch.isLabel || false) || 
-           localIsSprint !== (branch.isSprint || false) || 
            localSprintCounter !== (branch.sprintCounter || 1);
-  }, [branch, localTitle, localDescription, localStatus, localColor, localResponsibleId, localStartDate, localDueDate, localIsLabel, localIsSprint, localSprintCounter]);
+  }, [branch, localTitle, localDescription, localStatus, localType, localColor, localResponsibleId, localStartDate, localDueDate, localSprintCounter]);
 
   const handleSaveAll = () => {
     if (!branch) return;
@@ -94,12 +91,11 @@ const BranchDetails: React.FC = () => {
       title: localTitle, 
       description: localDescription, 
       status: localStatus, 
+      type: localType,
       color: localColor,
       responsibleId: localResponsibleId, 
       startDate: localStartDate, 
       dueDate: localDueDate, 
-      isLabel: localIsLabel, 
-      isSprint: localIsSprint, 
       sprintCounter: localSprintCounter 
     });
     showNotification("Modifiche salvate con successo.", "success");
@@ -208,7 +204,7 @@ const BranchDetails: React.FC = () => {
     <div className="fixed inset-0 z-50 md:absolute md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-96 bg-white dark:bg-slate-900 md:border-l border-gray-200 dark:border-slate-700 flex flex-col shadow-xl">
       <div className="p-4 border-b dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
         <div className="flex-1 mr-4">
-           <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{localIsLabel ? 'Etichetta' : (localIsSprint ? 'Sprint Mode' : 'Dettagli Ramo')}</span>
+           <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{localType === 'label' ? 'Etichetta' : (localType === 'sprint' ? 'Sprint Mode' : 'Dettagli Ramo')}</span>
            <input type="text" value={localTitle} onChange={(e) => setLocalTitle(e.target.value)} className="font-bold text-lg bg-transparent border-b border-transparent focus:border-indigo-500 outline-none w-full text-slate-900 dark:text-white" />
         </div>
         <button onClick={() => selectBranch(null)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-500"><X className="w-5 h-5" /></button>
@@ -222,24 +218,30 @@ const BranchDetails: React.FC = () => {
             </div>
         )}
 
-        {/* Tipo Ramo (Etichetta / Sprint) */}
+        {/* Tipo Ramo (Selector 3-vie) */}
         <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
                 <button 
-                    onClick={() => { setLocalIsLabel(!localIsLabel); if(!localIsLabel) setLocalIsSprint(false); }}
-                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border-2 transition-all text-xs font-bold ${localIsLabel ? 'bg-amber-50 border-amber-400 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-white border-slate-100 text-slate-400 dark:bg-slate-800 dark:border-slate-700'}`}
+                    onClick={() => setLocalType('standard')}
+                    className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl border-2 transition-all text-[10px] font-bold ${localType === 'standard' ? 'bg-slate-50 border-slate-400 text-slate-700 dark:bg-slate-800 dark:border-slate-500 dark:text-slate-200' : 'bg-white border-slate-100 text-slate-400 dark:bg-slate-800 dark:border-slate-700'}`}
+                >
+                    <Folder className="w-4 h-4" /> Standard
+                </button>
+                <button 
+                    onClick={() => setLocalType('label')}
+                    className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl border-2 transition-all text-[10px] font-bold ${localType === 'label' ? 'bg-amber-50 border-amber-400 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-white border-slate-100 text-slate-400 dark:bg-slate-800 dark:border-slate-700'}`}
                 >
                     <Tag className="w-4 h-4" /> Etichetta
                 </button>
                 <button 
-                    onClick={() => { setLocalIsSprint(!localIsSprint); if(!localIsSprint) setLocalIsLabel(false); }}
-                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border-2 transition-all text-xs font-bold ${localIsSprint ? 'bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400' : 'bg-white border-slate-100 text-slate-400 dark:bg-slate-800 dark:border-slate-700'}`}
+                    onClick={() => setLocalType('sprint')}
+                    className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl border-2 transition-all text-[10px] font-bold ${localType === 'sprint' ? 'bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400' : 'bg-white border-slate-100 text-slate-400 dark:bg-slate-800 dark:border-slate-700'}`}
                 >
                     <Zap className="w-4 h-4" /> Sprint
                 </button>
             </div>
             
-            {localIsSprint && (
+            {localType === 'sprint' && (
                 <div className="flex items-center gap-3 p-3 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 animate-in slide-in-from-top-2">
                     <Hash className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     <div className="flex-1">

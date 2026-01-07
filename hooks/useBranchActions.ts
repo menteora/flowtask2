@@ -37,8 +37,9 @@ export const useBranchActions = (
 
         let title = 'Nuovo Ramo';
         let newSprintCounter = parent.sprintCounter;
+        let type = 'standard';
 
-        if (parent.isSprint) {
+        if (parent.type === 'sprint') {
             const counter = parent.sprintCounter || 1;
             title = `${parent.title} ${new Date().getFullYear().toString().slice(-2)}-${String(counter).padStart(2, '0')}`;
             newSprintCounter = counter + 1;
@@ -48,6 +49,7 @@ export const useBranchActions = (
             id: newId,
             title,
             status: BranchStatus.PLANNED,
+            type: 'standard', // DEFAULT
             tasks: [],
             childrenIds: [],
             parentIds: [parentId],
