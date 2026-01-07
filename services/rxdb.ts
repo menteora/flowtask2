@@ -1,16 +1,19 @@
+
 import { createRxDatabase, RxDatabase, RxCollection, addRxPlugin } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv';
 import * as ReplicationPluginModule from 'rxdb/plugins/replication';
 import { replicateSupabase } from 'rxdb/plugins/replication-supabase';
+import { RxDBLeaderElectionPlugin } from 'rxdb/plugins/leader-election';
 import { SupabaseClient } from '@supabase/supabase-js';
 
-// Import dev-mode only in development environment to help with CONFLICT errors
-// In this specific sandbox environment, we'll enable it to provide the requested hints.
+// Import dev-mode only in development environment
 import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
-addRxPlugin(RxDBDevModePlugin);
 
-// RxDB plugins from ESM.sh can sometimes have named exports missing or wrapped in a default object.
+addRxPlugin(RxDBDevModePlugin);
+addRxPlugin(RxDBLeaderElectionPlugin);
+
+// Estrazione sicura del plugin di replicazione base
 const RxDBReplicationPlugin = (ReplicationPluginModule as any).RxDBReplicationPlugin || 
                                (ReplicationPluginModule as any).default?.RxDBReplicationPlugin || 
                                (ReplicationPluginModule as any).default;
@@ -124,10 +127,7 @@ export const getDatabase = async (): Promise<FlowTaskDatabase> => {
         dbPromise = (async () => {
             const db = await createRxDatabase<FlowTaskCollections>({
                 name: 'flowtaskdb',
-                // allowSlowCount=true prevents crashes when running .count() on non-indexed fields,
-                // although we have now added indexes to the primary lookup fields.
                 allowSlowCount: true,
-                // Wrap Dexie storage with Ajv validation to satisfy dev-mode requirements
                 storage: wrappedValidateAjvStorage({
                     storage: getRxStorageDexie()
                 })
@@ -146,26 +146,87 @@ export const getDatabase = async (): Promise<FlowTaskDatabase> => {
     return dbPromise;
 };
 
+/**
+ * Funzione di utilità per creare un client Supabase "sicuro" che non crasha
+ * se il plugin di RxDB cerca la funzione 'channel' in posti inaspettati.
+ */
+const createSanitizedSupabaseClient = (client: SupabaseClient): any => {
+    // Creiamo un proxy o un oggetto che eredita dal client originale
+    const sanitized = Object.create(client);
+    
+    // Definizione di una funzione channel "sicura" (no-op)
+    const safeChannel = () => ({
+        subscribe: () => ({ unsubscribe: () => {} }),
+        unsubscribe: () => {},
+        track: () => {},
+        on: () => ({ on: () => {} }),
+        send: () => {}
+    });
+
+    // Se manca la funzione channel principale, la aggiungiamo
+    if (typeof sanitized.channel !== 'function') {
+        sanitized.channel = safeChannel;
+    }
+
+    // Se manca l'oggetto realtime o la sua funzione channel, li aggiungiamo
+    if (!sanitized.realtime) {
+        sanitized.realtime = { channel: safeChannel };
+    } else if (typeof sanitized.realtime.channel !== 'function') {
+        sanitized.realtime.channel = safeChannel;
+    }
+
+    return sanitized;
+};
+
 export const setupSupabaseReplication = async (db: FlowTaskDatabase, supabase: SupabaseClient) => {
+    console.group('🛠️ FlowTask Replication Setup');
+    
+    if (!supabase) {
+        console.error('❌ Errore: Client Supabase non fornito.');
+        console.groupEnd();
+        return [];
+    }
+
+    // Ispezione e Sanitizzazione
+    const hasChannel = typeof (supabase as any).channel === 'function';
+    const hasRealtime = !!(supabase as any).realtime;
+    console.log('Stato Iniziale Client:', { hasChannel, hasRealtime });
+
+    // Creiamo la versione sicura del client
+    const safeSupabase = createSanitizedSupabaseClient(supabase);
+
     const replicationStates = [];
     const collections = ['projects', 'branches', 'tasks', 'people'];
 
     for (const name of collections) {
         try {
+            const collection = (db.collections as any)[name];
+            if (!collection) continue;
+
+            console.log(`📡 Inizializzazione '${name}'...`);
+            
+            // Usiamo il client "safeSupabase" e forziamo realtime: false
             const replicationState = replicateSupabase({
-                collection: (db.collections as any)[name],
-                supabase,
+                collection,
+                supabase: safeSupabase,
                 tableName: `flowtask_${name}`,
                 columnName: 'updated_at',
                 pull: {
-                    realtime: true
+                    realtime: false 
                 },
                 push: {}
             });
+            
+            replicationState.error$.subscribe(err => {
+                console.error(`❌ Errore Replicazione [${name}]:`, err);
+            });
+
             replicationStates.push(replicationState);
         } catch (err) {
-            console.error(`Errore durante l'inizializzazione della replicazione per ${name}:`, err);
+            console.error(`🔥 Errore fatale durante inizializzazione '${name}':`, err);
         }
     }
+    
+    console.groupEnd();
     return replicationStates;
 };

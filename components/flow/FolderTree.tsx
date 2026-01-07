@@ -15,7 +15,7 @@ interface FolderNodeProps {
 }
 
 const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0, siblingsCount = 0 }) => {
-  const { state, pendingSyncIds } = useProject();
+  const { state } = useProject();
   const { selectBranch, selectedBranchId, addBranch, updateBranch, moveBranch, showArchived } = useBranch();
   const { updateTask, moveTask, showOnlyOpen, setEditingTask } = useTask();
   
@@ -23,8 +23,6 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
   
   if (!branch) return null;
   
-  const isSyncing = pendingSyncIds.has(branchId);
-
   const isSelfVisible = !branch.archived || showArchived;
   const hasActiveChildren = branch.childrenIds.some(cid => {
       const child = state.branches[cid];
@@ -67,7 +65,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
   };
 
   return (
-    <div className={`flex flex-col select-none ${isSyncing ? 'bg-indigo-50/20' : ''}`}>
+    <div className={`flex flex-col select-none`}>
       <div 
         className={`
           flex items-center gap-2 py-3 px-4 border-b border-gray-100 dark:border-slate-800 transition-colors cursor-pointer relative group
@@ -77,12 +75,6 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
         style={{ paddingLeft: `${depth * 1.5 + 1}rem` }}
         onClick={handleSelect}
       >
-        {isSyncing && (
-            <div className="absolute left-1 top-1/2 -translate-y-1/2">
-                <RefreshCw className="w-3 h-3 text-indigo-500 animate-spin" />
-            </div>
-        )}
-
         <button 
            onClick={handleToggle}
            className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-slate-700 ${!hasContent ? 'invisible' : ''}`}
@@ -147,14 +139,13 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
       {isOpen && hasContent && (
         <div className="flex flex-col">
           {sortedTasks.map((task, idx) => {
-             const taskSyncing = pendingSyncIds.has(task.id);
              const canMoveUp = idx > 0 && sortedTasks[idx - 1].completed === task.completed;
              const canMoveDown = idx < sortedTasks.length - 1 && sortedTasks[idx + 1].completed === task.completed;
 
              return (
                  <div 
                     key={task.id}
-                    className={`flex items-center gap-3 py-2 border-b border-gray-50 dark:border-slate-800/50 pr-2 group ${taskSyncing ? 'bg-indigo-50/10' : 'bg-gray-50/50 dark:bg-slate-900/50'}`}
+                    className={`flex items-center gap-3 py-2 border-b border-gray-50 dark:border-slate-800/50 pr-2 group ${'bg-gray-50/50 dark:bg-slate-900/50'}`}
                     style={{ paddingLeft: `${(depth + 1) * 1.5 + 2.5}rem` }}
                  >
                     <button 
@@ -163,9 +154,8 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
                             updateTask(branchId, task.id, { completed: !task.completed });
                         }}
                         className={`${task.completed ? 'text-green-500' : 'text-gray-300 dark:text-slate-600'}`}
-                        disabled={taskSyncing}
                     >
-                        {taskSyncing ? <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" /> : (task.completed ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />)}
+                        {task.completed ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                     </button>
                     
                     <div 
