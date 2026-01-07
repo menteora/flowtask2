@@ -45,17 +45,26 @@ export const useSyncEngine = (
         if (!error) {
           await dbService.removeFromSyncQueue(op.id!);
         } else if (error.message === 'CONCURRENCY_CONFLICT') {
+          // In caso di conflitto, rimuoviamo l'operazione dalla coda per evitare blocchi.
+          // L'utente dovrebbe ricaricare i dati per vedere l'ultima versione del DB.
           await dbService.removeFromSyncQueue(op.id!);
-          showNotification("Conflitto rilevato. Dati sincronizzati dal server.", "error");
+          showNotification("Conflitto di sincronizzazione rilevato per un record. Ricarica il progetto.", "error");
+          setAutoSaveStatus('error');
+        } else {
+          console.error("Supabase sync error details:", error);
+          setAutoSaveStatus('error');
         }
       } catch (e) {
-        console.error("Sync error:", e);
+        console.error("Unhandled sync error:", e);
+        setAutoSaveStatus('error');
       }
     }
     
     setPendingSyncIds(new Set());
-    setAutoSaveStatus('saved');
-  }, [isOfflineMode, supabaseClient, session, showNotification]);
+    if (autoSaveStatus !== 'error') {
+        setAutoSaveStatus('saved');
+    }
+  }, [isOfflineMode, supabaseClient, session, showNotification, autoSaveStatus]);
 
   useEffect(() => {
     const interval = setInterval(processSyncQueue, 10000);
