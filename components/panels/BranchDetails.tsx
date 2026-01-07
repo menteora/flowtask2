@@ -5,7 +5,7 @@ import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
 import { BranchStatus, Branch, Person, BranchType } from '../../types';
 import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
-import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash, Palette, Folder } from 'lucide-react';
+import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash, Palette, Folder, Compass } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import DatePicker from '../ui/DatePicker';
 import Markdown from '../ui/Markdown';
@@ -204,7 +204,9 @@ const BranchDetails: React.FC = () => {
     <div className="fixed inset-0 z-50 md:absolute md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-96 bg-white dark:bg-slate-900 md:border-l border-gray-200 dark:border-slate-700 flex flex-col shadow-xl">
       <div className="p-4 border-b dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
         <div className="flex-1 mr-4">
-           <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{localType === 'label' ? 'Etichetta' : (localType === 'sprint' ? 'Sprint Mode' : 'Dettagli Ramo')}</span>
+           <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+               {localType === 'label' ? 'Etichetta' : (localType === 'sprint' ? 'Sprint Mode' : (localType === 'objective' ? 'Obiettivo' : 'Dettagli Ramo'))}
+           </span>
            <input type="text" value={localTitle} onChange={(e) => setLocalTitle(e.target.value)} className="font-bold text-lg bg-transparent border-b border-transparent focus:border-indigo-500 outline-none w-full text-slate-900 dark:text-white" />
         </div>
         <button onClick={() => selectBranch(null)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-500"><X className="w-5 h-5" /></button>
@@ -218,24 +220,30 @@ const BranchDetails: React.FC = () => {
             </div>
         )}
 
-        {/* Tipo Ramo (Selector 3-vie) */}
+        {/* Tipo Ramo (Selector 4-vie) */}
         <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
                 <button 
                     onClick={() => setLocalType('standard')}
-                    className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl border-2 transition-all text-[10px] font-bold ${localType === 'standard' ? 'bg-slate-50 border-slate-400 text-slate-700 dark:bg-slate-800 dark:border-slate-500 dark:text-slate-200' : 'bg-white border-slate-100 text-slate-400 dark:bg-slate-800 dark:border-slate-700'}`}
+                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border-2 transition-all text-xs font-bold ${localType === 'standard' ? 'bg-slate-50 border-slate-400 text-slate-700 dark:bg-slate-800 dark:border-slate-500 dark:text-slate-200' : 'bg-white border-slate-100 text-slate-400 dark:bg-slate-800 dark:border-slate-700'}`}
                 >
                     <Folder className="w-4 h-4" /> Standard
                 </button>
                 <button 
+                    onClick={() => setLocalType('objective')}
+                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border-2 transition-all text-xs font-bold ${localType === 'objective' ? 'bg-cyan-50 border-cyan-400 text-cyan-700 dark:bg-cyan-900/20 dark:text-cyan-400' : 'bg-white border-slate-100 text-slate-400 dark:bg-slate-800 dark:border-slate-700'}`}
+                >
+                    <Compass className="w-4 h-4" /> Obiettivo
+                </button>
+                <button 
                     onClick={() => setLocalType('label')}
-                    className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl border-2 transition-all text-[10px] font-bold ${localType === 'label' ? 'bg-amber-50 border-amber-400 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-white border-slate-100 text-slate-400 dark:bg-slate-800 dark:border-slate-700'}`}
+                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border-2 transition-all text-xs font-bold ${localType === 'label' ? 'bg-amber-50 border-amber-400 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-white border-slate-100 text-slate-400 dark:bg-slate-800 dark:border-slate-700'}`}
                 >
                     <Tag className="w-4 h-4" /> Etichetta
                 </button>
                 <button 
                     onClick={() => setLocalType('sprint')}
-                    className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl border-2 transition-all text-[10px] font-bold ${localType === 'sprint' ? 'bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400' : 'bg-white border-slate-100 text-slate-400 dark:bg-slate-800 dark:border-slate-700'}`}
+                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border-2 transition-all text-xs font-bold ${localType === 'sprint' ? 'bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400' : 'bg-white border-slate-100 text-slate-400 dark:bg-slate-800 dark:border-slate-700'}`}
                 >
                     <Zap className="w-4 h-4" /> Sprint
                 </button>
@@ -256,6 +264,14 @@ const BranchDetails: React.FC = () => {
                     <div className="text-[9px] text-indigo-400 font-medium max-w-[100px] leading-tight">
                         I figli verranno chiamati "{localTitle} {new Date().getFullYear().toString().slice(-2)}-{String(localSprintCounter).padStart(2, '0')}"
                     </div>
+                </div>
+            )}
+            
+            {localType === 'objective' && (
+                <div className="p-3 bg-cyan-50/50 dark:bg-cyan-900/20 rounded-xl border border-cyan-100 dark:border-cyan-800 animate-in slide-in-from-top-2">
+                    <p className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold italic">
+                        La descrizione inserita qui sotto sarà sempre visibile nel nodo per mantenere il focus sull'obiettivo principale di questo ramo.
+                    </p>
                 </div>
             )}
         </div>
@@ -360,7 +376,7 @@ const BranchDetails: React.FC = () => {
         {/* Descrizione con Toolbar WYSIWYG e Preview */}
         <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
-                <label className="text-[10px] font-black uppercase text-slate-400">Descrizione</label>
+                <label className="text-[10px] font-black uppercase text-slate-400">Descrizione {localType === 'objective' && '/ Motto'}</label>
                 <button 
                     onClick={() => setIsPreviewMode(!isPreviewMode)}
                     className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline"
@@ -406,7 +422,7 @@ const BranchDetails: React.FC = () => {
                         value={localDescription} 
                         onChange={(e) => setLocalDescription(e.target.value)} 
                         className="w-full h-32 p-3 text-sm bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 outline-none resize-none" 
-                        placeholder="Aggiungi dettagli..." 
+                        placeholder={localType === 'objective' ? "Inserisci qui il motto o l'obiettivo del ramo..." : "Aggiungi dettagli..."} 
                     />
                 </div>
             )}

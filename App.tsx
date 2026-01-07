@@ -274,10 +274,23 @@ const App: React.FC = () => {
             <>
                 <div className="hidden md:block w-full h-full relative"><FlowCanvas /></div>
                 <div className="block md:hidden w-full h-full"><FolderTree /></div>
-                <div className="hidden md:flex absolute bottom-10 right-10 flex-col gap-2 z-30 pointer-events-none">
-                    <div className="flex flex-col gap-2 pointer-events-auto bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-xl border dark:border-slate-800">
-                        <button onClick={() => setAllBranchesCollapsed(false)} className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors" title="Espandi"><ChevronsDown className="w-5 h-5" /></button>
-                        <button onClick={() => setAllBranchesCollapsed(true)} className="p-3 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors" title="Comprimi"><ChevronsUp className="w-5 h-5" /></button>
+                <div className="hidden md:flex absolute bottom-10 right-10 flex-col gap-3 z-30 pointer-events-none">
+                    <div className="flex flex-col gap-3 pointer-events-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-2.5 rounded-2xl shadow-2xl border-2 border-indigo-100 dark:border-indigo-900/50">
+                        <button 
+                            onClick={() => setAllBranchesCollapsed(false)} 
+                            className="p-3.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 hover:scale-110 transition-all shadow-md active:scale-95" 
+                            title="Espandi Tutto"
+                        >
+                            <ChevronsDown className="w-6 h-6" />
+                        </button>
+                        <div className="h-px bg-indigo-100 dark:bg-indigo-900 mx-1"></div>
+                        <button 
+                            onClick={() => setAllBranchesCollapsed(true)} 
+                            className="p-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 hover:scale-110 transition-all shadow-md active:scale-95" 
+                            title="Comprimi Tutto"
+                        >
+                            <ChevronsUp className="w-6 h-6" />
+                        </button>
                     </div>
                 </div>
                 {selectedBranchId && <BranchDetails />}

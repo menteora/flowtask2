@@ -7,7 +7,7 @@ export enum BranchStatus {
   CANCELLED = 'CANCELLED',
 }
 
-export type BranchType = 'standard' | 'label' | 'sprint';
+export type BranchType = 'standard' | 'label' | 'sprint' | 'objective';
 
 export interface Person {
   id: string;
