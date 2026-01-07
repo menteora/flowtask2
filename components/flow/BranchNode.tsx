@@ -184,9 +184,10 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
 
                 {isObjective && hasDescription && (
                     <div className="px-3 pb-3 pt-1 border-t border-cyan-100 dark:border-cyan-900/30 bg-cyan-50/30 dark:bg-cyan-900/5">
-                        <p className="text-[11px] text-cyan-600 dark:text-cyan-400 italic font-medium leading-tight line-clamp-3 relative pl-3">
-                            <Quote className="w-2 h-2 absolute left-0 top-0 opacity-40 rotate-180" />
+                        <p className="text-[11px] text-cyan-600 dark:text-cyan-400 italic font-medium leading-tight line-clamp-3 relative pl-4 pr-3 py-1">
+                            <Quote className="w-2 h-2 absolute left-1 top-1 opacity-40 rotate-180" />
                             {branch.description}
+                            <Quote className="w-2 h-2 inline-block ml-1 opacity-40 translate-y-1" />
                         </p>
                     </div>
                 )}
@@ -281,7 +282,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                 </div>
                 <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                     <div 
-                        className={`h-full transition-all duration-500 ${branch.archived ? 'bg-slate-400' : 'bg-indigo-500'}`}
+                        className={`h-full transition-all duration-500 ${branch.archived ? 'bg-slate-400' : 'bg-indigo-50'}`}
                         style={{ width: `${progress}%` }}
                     />
                 </div>
