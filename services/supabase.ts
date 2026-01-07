@@ -27,29 +27,50 @@ export const supabaseService = {
     return client.from('flowtask_people').update({ deleted_at: new Date().toISOString() }).eq('id', id);
   },
 
+  /**
+   * Gestisce l'inserimento o l'aggiornamento con controllo della concorrenza.
+   * Il payload contiene già la versione incrementata (target).
+   */
   async upsertEntity(client: SupabaseClient, table: string, payload: any) {
     const { version, id, updatedAt, deletedAt, isDirty, ...rest } = payload;
     
+    // Gestione Soft Delete
     if (payload.deleted_at) {
-        return client.from(table).update({ deleted_at: payload.deleted_at, version: (version || 1) + 1 }).eq('id', id);
+        return client.from(table).update({ 
+            deleted_at: payload.deleted_at, 
+            version: (version || 1) + 1 
+        }).eq('id', id);
     }
 
+    // Se versione > 1, è un aggiornamento di un record esistente.
+    // Usiamo Optimistic Concurrency Control (OCC).
     if (version && version > 1) {
+      const previousVersion = version - 1;
+      
       const { data, error } = await client
         .from(table)
-        .update({ ...rest, version: version + 1 })
+        .update({ 
+            ...rest, 
+            version: version // Usiamo la versione già incrementata localmente
+        })
         .eq('id', id)
-        .eq('version', version)
+        .eq('version', previousVersion) // Deve corrispondere alla versione precedente sul DB
         .select();
 
       if (error) return { error };
+      
+      // Se data è vuoto, significa che eq('version', previousVersion) non ha trovato corrispondenze
+      // (Conflitto di versione: qualcuno ha aggiornato il record prima di noi)
       if (!data || data.length === 0) {
-        return { error: { message: 'CONCURRENCY_CONFLICT', details: 'Il record è stato modificato o eliminato.' } };
+        console.error(`Concurrency Conflict on ${table}:${id}. Local target: ${version}, DB expected: ${previousVersion}`);
+        return { error: { message: 'CONCURRENCY_CONFLICT', details: 'Il record è stato modificato da un altro utente o dispositivo.' } };
       }
+      
       return { data };
     }
 
-    return client.from(table).upsert(payload);
+    // Per nuovi record (version = 1), usiamo upsert semplice.
+    return client.from(table).upsert({ ...rest, id, version: version || 1 });
   },
 
   async downloadFullProject(client: SupabaseClient, id: string): Promise<ProjectState> {
