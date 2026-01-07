@@ -33,6 +33,7 @@ export const persistenceService = {
         title: branch.title,
         description: branch.description,
         status: branch.status,
+        color: branch.color, // AGGIUNTO PER PERSISTENZA
         responsible_id: branch.responsibleId,
         start_date: branch.startDate,
         end_date: branch.endDate,

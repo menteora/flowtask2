@@ -27,9 +27,6 @@ export const supabaseService = {
     return client.from('flowtask_people').update({ deleted_at: new Date().toISOString() }).eq('id', id);
   },
 
-  /**
-   * Implementazione OCC + Soft Delete Aware.
-   */
   async upsertEntity(client: SupabaseClient, table: string, payload: any) {
     const { version, id, updatedAt, deletedAt, isDirty, ...rest } = payload;
     
@@ -92,6 +89,7 @@ export const supabaseService = {
 
       branches[b.id] = {
         id: b.id, title: b.title, description: b.description, status: b.status as BranchStatus,
+        color: b.color,
         tasks: bTasks, childrenIds: b.children_ids || [], parentIds: b.parent_ids || [],
         startDate: b.start_date, endDate: b.end_date, dueDate: b.due_date,
         archived: b.archived, collapsed: b.collapsed, isLabel: b.is_label,
@@ -114,7 +112,7 @@ export const supabaseService = {
 
     for (const b of Object.values(project.branches)) {
       await this.upsertEntity(client, 'flowtask_branches', {
-          id: b.id, project_id: project.id, title: b.title, description: b.description, status: b.status,
+          id: b.id, project_id: project.id, title: b.title, description: b.description, status: b.status, color: b.color,
           start_date: b.startDate, end_date: b.endDate, due_date: b.dueDate, archived: b.archived,
           collapsed: b.collapsed, is_label: b.isLabel, is_sprint: b.isSprint || false,
           sprint_counter: b.sprintCounter || 1, parent_ids: b.parentIds, children_ids: b.childrenIds,

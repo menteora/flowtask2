@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
-import { STATUS_CONFIG } from '../../constants';
+import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
 import { ChevronRight, ChevronDown, Plus, FileText, CheckSquare, Square, Archive, GitBranch, ChevronUp, Tag, Calendar, CheckCircle2, ChevronsDown, ChevronsUp, Layers, RefreshCw, Zap, ArrowUp, ArrowDown } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 
@@ -64,6 +64,9 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
     selectBranch(branchId);
   };
 
+  const customColor = PASTEL_COLORS.find(c => c.id === branch.color);
+  const iconColorClass = branch.isLabel ? 'text-amber-500' : (branch.isSprint ? 'text-indigo-500' : (customColor ? customColor.text : statusConfig.color));
+
   return (
     <div className={`flex flex-col select-none`}>
       <div 
@@ -82,7 +85,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
            {isOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
         </button>
 
-        <div className={`${branch.isLabel ? 'text-amber-500' : (branch.isSprint ? 'text-indigo-500' : statusConfig.color)} bg-transparent p-0 relative`}>
+        <div className={`${iconColorClass} bg-transparent p-0 relative`}>
              {branch.isLabel ? <Tag className="w-5 h-5" /> : (branch.isSprint ? <Zap className="w-5 h-5" /> : <GitBranch className="w-5 h-5" />)}
              {branch.archived && (
                  <div className="absolute -bottom-1 -right-1 bg-gray-200 dark:bg-gray-700 rounded-full p-0.5">
