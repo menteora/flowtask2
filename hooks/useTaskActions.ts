@@ -1,6 +1,6 @@
-// Added Task, ProjectState, Branch types for proper typing of entities
+
 import { useCallback } from 'react';
-import { Task, ProjectState, Branch } from '../types';
+import { Task, ProjectState } from '../types';
 import { persistenceService } from '../services/persistence';
 
 export const useTaskActions = (
@@ -10,7 +10,6 @@ export const useTaskActions = (
   supabaseClient: any
 ) => {
   const addTask = useCallback(async (branchId: string, title: string) => {
-    // Explicitly typing prev as ProjectState[] ensures spreads target valid object types
     setProjects((prev: ProjectState[]) => prev.map(p => {
         if (p.id !== activeProjectId) return p;
         const branch = p.branches[branchId];
@@ -35,7 +34,6 @@ export const useTaskActions = (
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
   const updateTask = useCallback(async (branchId: string, taskId: string, updates: Partial<Task>) => {
-    // Explicitly typing prev as ProjectState[] ensures spreads target valid object types
     setProjects((prev: ProjectState[]) => {
         const projectIndex = prev.findIndex(p => p.id === activeProjectId);
         if (projectIndex === -1) return prev;
@@ -47,13 +45,9 @@ export const useTaskActions = (
         let taskToSave: Task | null = null;
         const updatedTasks = branch.tasks.map(t => {
             if (t.id === taskId) {
-                // LOGICA CENTRALIZZATA COMPLETAMENTO
                 const finalUpdates = { ...updates };
-                
-                // Se lo stato di completamento sta cambiando
                 if (updates.completed !== undefined && updates.completed !== t.completed) {
                     if (updates.completed) {
-                        // Se non è stata fornita una data specifica (es. dal DatePicker manuale), usa NOW
                         finalUpdates.completedAt = updates.completedAt || new Date().toISOString();
                     } else {
                         finalUpdates.completedAt = undefined;
@@ -81,7 +75,6 @@ export const useTaskActions = (
             } 
         };
 
-        // Persistenza
         persistenceService.saveTask(branchId, taskToSave, isOfflineMode, supabaseClient, newProjectState);
 
         const newProjects = [...prev];
@@ -91,7 +84,6 @@ export const useTaskActions = (
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
   const deleteTask = useCallback(async (branchId: string, taskId: string) => {
-    // Explicitly typing prev as ProjectState[] ensures spreads target valid object types
     setProjects((prev: ProjectState[]) => prev.map(p => {
         if (p.id !== activeProjectId) return p;
         const branch = p.branches[branchId];
@@ -106,7 +98,6 @@ export const useTaskActions = (
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
   const moveTask = useCallback(async (branchId: string, taskId: string, direction: 'up' | 'down') => {
-      // Explicitly typing prev as ProjectState[] ensures spreads target valid object types
       setProjects((prev: ProjectState[]) => prev.map(p => {
           if (p.id !== activeProjectId) return p;
           const branch = p.branches[branchId];
@@ -119,35 +110,42 @@ export const useTaskActions = (
           const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
           if (targetIdx < 0 || targetIdx >= tasks.length) return p;
 
-          // Swap positions
           [tasks[idx], tasks[targetIdx]] = [tasks[targetIdx], tasks[idx]];
           
-          // Re-index position property
-          const reindexedTasks = tasks.map((t, i) => ({ ...t, position: i }));
+          const reindexedTasks = tasks.map((t, i) => ({ 
+              ...t, 
+              position: i,
+              version: (t.version || 1) + 1,
+              updatedAt: new Date().toISOString()
+          }));
+
           const newState = { ...p, branches: { ...p.branches, [branchId]: { ...branch, tasks: reindexedTasks } } };
-          
-          // Salvataggio semplificato (offline-first salva tutto il progetto)
           persistenceService.saveProject(newState, isOfflineMode, supabaseClient);
-          
           return newState;
       }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
   const moveTaskToBranch = useCallback(async (taskId: string, sourceBranchId: string, targetBranchId: string) => {
-      // Explicitly typing prev as ProjectState[] ensures spreads target valid object types
       setProjects((prev: ProjectState[]) => prev.map(p => {
           if (p.id !== activeProjectId) return p;
           const sourceBranch = p.branches[sourceBranchId];
           const targetBranch = p.branches[targetBranchId];
           if (!sourceBranch || !targetBranch) return p;
 
-          const taskToMove = sourceBranch.tasks.find(t => t.id === taskId);
-          if (!taskToMove) return p;
+          const originalTask = sourceBranch.tasks.find(t => t.id === taskId);
+          if (!originalTask) return p;
+
+          const taskToMove: Task = { 
+              ...originalTask, 
+              position: targetBranch.tasks.length,
+              version: (originalTask.version || 1) + 1, // INCREMENTO VERSIONE PER OCC
+              updatedAt: new Date().toISOString()
+          };
 
           const newSourceTasks = sourceBranch.tasks.filter(t => t.id !== taskId);
-          const newTargetTasks = [...targetBranch.tasks, { ...taskToMove, position: targetBranch.tasks.length }];
+          const newTargetTasks = [...targetBranch.tasks, taskToMove];
 
-          const newState = {
+          const newState: ProjectState = {
               ...p,
               branches: {
                   ...p.branches,
@@ -156,20 +154,18 @@ export const useTaskActions = (
               }
           };
 
-          persistenceService.saveProject(newState, isOfflineMode, supabaseClient);
+          persistenceService.moveTasks(targetBranchId, [taskToMove], isOfflineMode, supabaseClient, newState);
           return newState;
       }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
   const bulkUpdateTasks = useCallback(async (branchId: string, text: string) => {
       const titles = text.split('\n').filter(t => t.trim().length > 0);
-      // Explicitly typing prev as ProjectState[] ensures spreads target valid object types
       setProjects((prev: ProjectState[]) => prev.map(p => {
           if (p.id !== activeProjectId) return p;
           const branch = p.branches[branchId];
           if (!branch) return p;
 
-          // Manteniamo i task esistenti che sono ancora nel testo, aggiungiamo i nuovi
           const existingMap = new Map(branch.tasks.map(t => [t.title, t]));
           const newTasks: Task[] = titles.map((title, idx) => {
               const existing = existingMap.get(title);
@@ -191,16 +187,23 @@ export const useTaskActions = (
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
   const bulkMoveTasks = useCallback(async (taskIds: string[], sourceBranchId: string, targetBranchId: string) => {
-      // Explicitly typing prev as ProjectState[] ensures spreads target valid object types, resolving errors on spread lines
       setProjects((prev: ProjectState[]) => prev.map(p => {
           if (p.id !== activeProjectId) return p;
           const sourceBranch = p.branches[sourceBranchId];
           const targetBranch = p.branches[targetBranchId];
           if (!sourceBranch || !targetBranch) return p;
 
-          const tasksToMove = sourceBranch.tasks.filter(t => taskIds.includes(t.id));
+          const tasksToMove: Task[] = sourceBranch.tasks
+              .filter(t => taskIds.includes(t.id))
+              .map((t, i) => ({
+                  ...t,
+                  position: targetBranch.tasks.length + i,
+                  version: (t.version || 1) + 1, // INCREMENTO VERSIONE PER OCC
+                  updatedAt: new Date().toISOString()
+              }));
+
           const remainingSourceTasks = sourceBranch.tasks.filter(t => !taskIds.includes(t.id));
-          const newTargetTasks = [...targetBranch.tasks, ...tasksToMove.map((t, i) => ({ ...t, position: targetBranch.tasks.length + i }))];
+          const newTargetTasks = [...targetBranch.tasks, ...tasksToMove];
 
           const newState: ProjectState = {
               ...p,
@@ -211,7 +214,7 @@ export const useTaskActions = (
               }
           };
 
-          persistenceService.saveProject(newState, isOfflineMode, supabaseClient);
+          persistenceService.moveTasks(targetBranchId, tasksToMove, isOfflineMode, supabaseClient, newState);
           return newState;
       }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
