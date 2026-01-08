@@ -62,7 +62,6 @@ const LOADING_PROJECT: ProjectState = {
             id: 'root',
             title: 'Inizializzazione...',
             status: BranchStatus.PLANNED,
-            // Added missing required 'type' property to satisfy Branch interface
             type: 'standard',
             tasks: [],
             childrenIds: [],
@@ -80,6 +79,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const [supabaseConfig, setSupabaseConfigState] = useState(() => localStorageService.getSupabaseConfig());
+  // Fix: Replaced unknown 'Client' type with 'SupabaseClient'
   const [supabaseClient, setSupabaseClient] = useState<SupabaseClient | null>(null);
   const [session, setSession] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -89,6 +89,13 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [projects, setProjects] = useState<ProjectState[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string>('');
+
+  // Sincronizza l'ordine dei progetti nel localStorage
+  useEffect(() => {
+    if (!isInitializing && projects.length > 0) {
+      localStorageService.saveOpenProjectIds(projects.map(p => p.id));
+    }
+  }, [projects, isInitializing]);
 
   const setSupabaseConfig = useCallback((url: string, key: string) => {
     const config = { url, key };
@@ -155,6 +162,19 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           await supabaseService.uploadFullProject(supabaseClient, def, session.user.id);
           loadedProjects = [def];
         }
+      }
+
+      // Applica l'ordine salvato
+      const savedOrder = localStorageService.getOpenProjectIds();
+      if (savedOrder.length > 0) {
+        loadedProjects.sort((a, b) => {
+          const indexA = savedOrder.indexOf(a.id);
+          const indexB = savedOrder.indexOf(b.id);
+          if (indexA === -1 && indexB === -1) return 0;
+          if (indexA === -1) return 1;
+          if (indexB === -1) return -1;
+          return indexA - indexB;
+        });
       }
 
       setProjects(loadedProjects);
