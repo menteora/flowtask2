@@ -3,14 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useTask } from '../../context/TaskContext';
 import { 
-  Database, Download, Key, Cloud, Loader2, LogOut, Upload, Trash2, RefreshCw, FileJson, Terminal, Check, Copy, Wifi, WifiOff, MessageSquare, Settings as SettingsIcon
+  Database, Download, Key, Cloud, Loader2, LogOut, Upload, Trash2, RefreshCw, FileJson, Terminal, Check, Copy, Wifi, WifiOff, MessageSquare, Settings as SettingsIcon, FileDown
 } from 'lucide-react';
 
 const SettingsPanel: React.FC = () => {
   const { 
     supabaseConfig, setSupabaseConfig, uploadProjectToSupabase, listProjectsFromSupabase,
     downloadProjectFromSupabase, deleteProjectFromSupabase,
-    exportAllToJSON, session, logout, disableOfflineMode, enableOfflineMode, showNotification,
+    exportAllToJSON, exportActiveProjectToJSON, state, session, logout, disableOfflineMode, enableOfflineMode, showNotification,
     isOfflineMode
   } = useProject();
 
@@ -162,7 +162,10 @@ CREATE TRIGGER tr_updated_at_people BEFORE UPDATE ON flowtask_people FOR EACH RO
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Configura la persistenza dei tuoi dati.</p>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+            <button onClick={exportActiveProjectToJSON} className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-bold flex items-center gap-2 border border-indigo-200 dark:border-indigo-800 shadow-sm hover:bg-indigo-100 transition-colors">
+                <FileDown className="w-4 h-4" /> Esporta Progetto ({state.name})
+            </button>
             <button onClick={exportAllToJSON} className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm hover:bg-emerald-700 transition-colors">
                 <FileJson className="w-4 h-4" /> Esporta Tutto (JSON)
             </button>

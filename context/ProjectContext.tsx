@@ -46,6 +46,7 @@ interface ProjectContextType {
   downloadProjectFromSupabase: (id: string) => Promise<void>;
   deleteProjectFromSupabase: (id: string) => Promise<void>;
   exportAllToJSON: () => void;
+  exportActiveProjectToJSON: () => void;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -192,7 +193,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const deleteProject = useCallback(async (id: string) => {
       if (confirm("Eliminare definitivamente?")) {
-          // Fixed: used supabaseClient instead of client and removed extra userId argument to match persistenceService.deleteProject signature
           await persistenceService.deleteProject(id, isOfflineMode, supabaseClient);
           setProjects(prev => {
               const filtered = prev.filter(p => p.id !== id);
@@ -271,13 +271,24 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `flowtask_export_${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `flowtask_all_export_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
   }, [projects]);
 
   const activeProject = useMemo(() => {
     return projects.find(p => p.id === activeProjectId) || LOADING_PROJECT;
   }, [projects, activeProjectId]);
+
+  const exportActiveProjectToJSON = useCallback(() => {
+    if (activeProject && activeProject.id !== 'loading') {
+      const blob = new Blob([JSON.stringify(activeProject, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `flowtask_project_${activeProject.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+    }
+  }, [activeProject]);
 
   return (
     <ProjectContext.Provider value={{
@@ -286,8 +297,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setProjects, switchProject, createProject, deleteProject, renameProject, setSupabaseConfig, logout,
       enableOfflineMode, disableOfflineMode, showNotification,
       reorderProject, closeProject, loadProject,
-      // Added missing exportAllToJSON to satisfy ProjectContextType
       exportAllToJSON,
+      exportActiveProjectToJSON,
       uploadProjectToSupabase: async () => {
           if (activeProject && supabaseClient && session) await supabaseService.uploadFullProject(supabaseClient, activeProject, session.user.id);
       },
