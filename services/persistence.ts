@@ -34,7 +34,7 @@ export const persistenceService = {
         description: branch.description,
         status: branch.status,
         color: branch.color, 
-        type: branch.type, // CENTRALIZZATO
+        type: branch.type,
         responsible_id: branch.responsibleId,
         start_date: branch.startDate,
         end_date: branch.endDate,
@@ -76,6 +76,33 @@ export const persistenceService = {
         pinned: task.pinned || false,
         version: task.version
       });
+    }
+  },
+
+  /**
+   * Sposta uno o più task verso un nuovo ramo.
+   * Centralizza la logica di update della versione e del branch_id.
+   */
+  async moveTasks(targetBranchId: string, tasksToMove: Task[], isOffline: boolean, client: SupabaseClient | null, fullState: ProjectState) {
+    if (isOffline) {
+      await dbService.saveProject(fullState);
+    } else if (client) {
+      // Per ogni task, eseguiamo un upsert mirato con il nuovo branch_id
+      for (const task of tasksToMove) {
+        await supabaseService.upsertEntity(client, 'flowtask_tasks', {
+          id: task.id,
+          branch_id: targetBranchId,
+          title: task.title,
+          description: task.description,
+          assignee_id: task.assigneeId,
+          due_date: task.dueDate,
+          completed: task.completed,
+          completed_at: task.completedAt,
+          position: task.position,
+          pinned: task.pinned || false,
+          version: task.version // La versione deve essere già incrementata dal chiamante
+        });
+      }
     }
   },
 
