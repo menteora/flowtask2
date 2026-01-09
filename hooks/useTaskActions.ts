@@ -55,11 +55,12 @@ export const useTaskActions = (
                     if (updates.completed) {
                         finalUpdates.completedAt = updates.completedAt || new Date().toISOString();
                         
-                        // LOGICA AUTO-ATTIVAZIONE RAMO
+                        // LOGICA AUTO-ATTIVAZIONE RAMO E DATA INIZIO
                         if (branch.status === BranchStatus.PLANNED) {
                             branchToUpdate = {
                                 ...branch,
                                 status: BranchStatus.ACTIVE,
+                                // Imposta la data di inizio solo se è vuota
                                 startDate: branch.startDate || new Date().toISOString().split('T')[0],
                                 version: (branch.version || 1) + 1,
                                 updatedAt: new Date().toISOString()
@@ -85,7 +86,11 @@ export const useTaskActions = (
 
         const updatedBranches = { 
             ...currentProject.branches, 
-            [branchId]: { ...branch, tasks: updatedTasks, ...(branchToUpdate ? branchToUpdate : {}) } 
+            [branchId]: { 
+              ...branch, 
+              tasks: updatedTasks, 
+              ...(branchToUpdate ? { status: branchToUpdate.status, startDate: branchToUpdate.startDate, version: branchToUpdate.version, updatedAt: branchToUpdate.updatedAt } : {}) 
+            } 
         };
 
         const newProjectState = { 
@@ -96,7 +101,7 @@ export const useTaskActions = (
         // Persistenza Task
         persistenceService.saveTask(branchId, taskToSave, isOfflineMode, supabaseClient, newProjectState);
         
-        // Persistenza Ramo (se attivato)
+        // Persistenza Ramo (se attivato automaticamente)
         if (branchToUpdate) {
             persistenceService.saveBranch(currentProject.id, branchToUpdate, isOfflineMode, supabaseClient, newProjectState);
         }
