@@ -7,7 +7,8 @@ export const useTaskActions = (
   setProjects: any,
   activeProjectId: string,
   isOfflineMode: boolean,
-  supabaseClient: any
+  supabaseClient: any,
+  userId?: string
 ) => {
   const addTask = useCallback(async (branchId: string, title: string) => {
     setProjects((prev: ProjectState[]) => prev.map(p => {
@@ -120,7 +121,7 @@ export const useTaskActions = (
           }));
 
           const newState = { ...p, branches: { ...p.branches, [branchId]: { ...branch, tasks: reindexedTasks } } };
-          persistenceService.saveProject(newState, isOfflineMode, supabaseClient);
+          persistenceService.saveTasks(branchId, reindexedTasks, isOfflineMode, supabaseClient, newState);
           return newState;
       }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
@@ -138,7 +139,7 @@ export const useTaskActions = (
           const taskToMove: Task = { 
               ...originalTask, 
               position: targetBranch.tasks.length,
-              version: (originalTask.version || 1) + 1, // INCREMENTO VERSIONE PER OCC
+              version: (originalTask.version || 1) + 1,
               updatedAt: new Date().toISOString()
           };
 
@@ -169,7 +170,14 @@ export const useTaskActions = (
           const existingMap = new Map(branch.tasks.map(t => [t.title, t]));
           const newTasks: Task[] = titles.map((title, idx) => {
               const existing = existingMap.get(title);
-              if (existing) return { ...existing, position: idx };
+              if (existing) {
+                  return { 
+                    ...existing, 
+                    position: idx, 
+                    version: (existing.version || 1) + 1,
+                    updatedAt: new Date().toISOString()
+                  };
+              }
               return {
                   id: crypto.randomUUID(),
                   title,
@@ -181,7 +189,7 @@ export const useTaskActions = (
           });
 
           const newState = { ...p, branches: { ...p.branches, [branchId]: { ...branch, tasks: newTasks } } };
-          persistenceService.saveProject(newState, isOfflineMode, supabaseClient);
+          persistenceService.saveTasks(branchId, newTasks, isOfflineMode, supabaseClient, newState);
           return newState;
       }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
@@ -198,7 +206,7 @@ export const useTaskActions = (
               .map((t, i) => ({
                   ...t,
                   position: targetBranch.tasks.length + i,
-                  version: (t.version || 1) + 1, // INCREMENTO VERSIONE PER OCC
+                  version: (t.version || 1) + 1,
                   updatedAt: new Date().toISOString()
               }));
 

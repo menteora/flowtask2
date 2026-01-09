@@ -80,14 +80,37 @@ export const persistenceService = {
   },
 
   /**
+   * Salva più task contemporaneamente (utile per riordino o bulk update).
+   */
+  async saveTasks(branchId: string, tasks: Task[], isOffline: boolean, client: SupabaseClient | null, fullState: ProjectState) {
+    if (isOffline) {
+      await dbService.saveProject(fullState);
+    } else if (client) {
+      for (const task of tasks) {
+        await supabaseService.upsertEntity(client, 'flowtask_tasks', {
+          id: task.id,
+          branch_id: branchId,
+          title: task.title,
+          description: task.description,
+          assignee_id: task.assigneeId,
+          due_date: task.dueDate,
+          completed: task.completed,
+          completed_at: task.completedAt,
+          position: task.position || 0,
+          pinned: task.pinned || false,
+          version: task.version
+        });
+      }
+    }
+  },
+
+  /**
    * Sposta uno o più task verso un nuovo ramo.
-   * Centralizza la logica di update della versione e del branch_id.
    */
   async moveTasks(targetBranchId: string, tasksToMove: Task[], isOffline: boolean, client: SupabaseClient | null, fullState: ProjectState) {
     if (isOffline) {
       await dbService.saveProject(fullState);
     } else if (client) {
-      // Per ogni task, eseguiamo un upsert mirato con il nuovo branch_id
       for (const task of tasksToMove) {
         await supabaseService.upsertEntity(client, 'flowtask_tasks', {
           id: task.id,
@@ -100,7 +123,7 @@ export const persistenceService = {
           completed_at: task.completedAt,
           position: task.position,
           pinned: task.pinned || false,
-          version: task.version // La versione deve essere già incrementata dal chiamante
+          version: task.version 
         });
       }
     }
