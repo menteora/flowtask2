@@ -419,17 +419,17 @@ const TimelinePanel: React.FC = () => {
                                   </h3>
                               </div>
 
-                              <div className="space-y-8 pl-6 border-l-2 border-slate-100 dark:border-slate-800">
+                              <div className="space-y-8 pl-10 border-l-2 border-slate-100 dark:border-slate-800">
                                   {dayLog.groups.map(group => (
-                                      <div key={group.person.id} className="relative">
-                                          <div className="absolute -left-[33px] top-0 p-1 bg-white dark:bg-slate-900 rounded-full">
-                                              <Avatar person={group.person} size="md" />
-                                          </div>
-                                          
-                                          <div className="mb-2 flex items-center justify-between">
-                                              <h4 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                      <div key={group.person.id} className="relative group/person">
+                                          {/* Header della Persona con Avatar allineato sulla linea temporale */}
+                                          <div className="flex items-center gap-3 mb-3 -ml-[58px]">
+                                              <div className="p-1 bg-white dark:bg-slate-900 rounded-full z-10 shadow-sm border border-slate-100 dark:border-slate-800 shrink-0">
+                                                  <Avatar person={group.person} size="md" />
+                                              </div>
+                                              <h4 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 truncate">
                                                   {group.person.name}
-                                                  <span className="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">{group.tasks.length} completati</span>
+                                                  <span className="shrink-0 text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-black uppercase">{group.tasks.length} task</span>
                                               </h4>
                                           </div>
 
@@ -451,7 +451,7 @@ const TimelinePanel: React.FC = () => {
                                                               <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{task.title}</p>
                                                               <div className="flex items-center gap-2 text-[10px] text-slate-500 uppercase font-black">
                                                                   <Folder className="w-3 h-3" /> {task.branchTitle}
-                                                                  {showAllProjects && <span className="opacity-40">• {task.projectName}</span>}
+                                                                  {showAllProjects && <span className="opacity-40 truncate">• {task.projectName}</span>}
                                                               </div>
                                                           </div>
                                                       </div>
