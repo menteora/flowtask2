@@ -37,7 +37,7 @@ interface TaskContextType {
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { setProjects, activeProjectId, isOfflineMode, supabaseClient } = useProject();
+  const { setProjects, activeProjectId, isOfflineMode, supabaseClient, session } = useProject();
   
   const [editingTask, setEditingTask] = useState<{ branchId: string; taskId: string } | null>(null);
   const [readingTask, setReadingTask] = useState<{ branchId: string; taskId: string } | null>(null);
@@ -46,7 +46,9 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [showOnlyOpen, setShowOnlyOpen] = useState(false);
   const [messageTemplates, setMessageTemplates] = useState({ opening: "Ciao {name}, ecco i tuoi task:", closing: "Buon lavoro!" });
 
-  const taskActions = useTaskActions(setProjects, activeProjectId, isOfflineMode, supabaseClient);
+  const userId = session?.user?.id;
+
+  const taskActions = useTaskActions(setProjects, activeProjectId, isOfflineMode, supabaseClient, userId);
   const peopleActions = usePeopleActions(setProjects, activeProjectId, isOfflineMode, supabaseClient);
 
   return (
