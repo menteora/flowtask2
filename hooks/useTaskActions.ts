@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { Task, ProjectState } from '../types';
+import { Task, ProjectState, BranchStatus } from '../types';
 import { persistenceService } from '../services/persistence';
 
 export const useTaskActions = (
@@ -44,12 +44,27 @@ export const useTaskActions = (
         if (!branch) return prev;
 
         let taskToSave: Task | null = null;
+        let branchToUpdate: any = null;
+
         const updatedTasks = branch.tasks.map(t => {
             if (t.id === taskId) {
                 const finalUpdates = { ...updates };
+                const isNowCompleted = updates.completed === true && !t.completed;
+
                 if (updates.completed !== undefined && updates.completed !== t.completed) {
                     if (updates.completed) {
                         finalUpdates.completedAt = updates.completedAt || new Date().toISOString();
+                        
+                        // LOGICA AUTO-ATTIVAZIONE RAMO
+                        if (branch.status === BranchStatus.PLANNED) {
+                            branchToUpdate = {
+                                ...branch,
+                                status: BranchStatus.ACTIVE,
+                                startDate: branch.startDate || new Date().toISOString().split('T')[0],
+                                version: (branch.version || 1) + 1,
+                                updatedAt: new Date().toISOString()
+                            };
+                        }
                     } else {
                         finalUpdates.completedAt = undefined;
                     }
@@ -68,15 +83,23 @@ export const useTaskActions = (
 
         if (!taskToSave) return prev;
 
-        const newProjectState = { 
-            ...currentProject, 
-            branches: { 
-                ...currentProject.branches, 
-                [branchId]: { ...branch, tasks: updatedTasks } 
-            } 
+        const updatedBranches = { 
+            ...currentProject.branches, 
+            [branchId]: { ...branch, tasks: updatedTasks, ...(branchToUpdate ? branchToUpdate : {}) } 
         };
 
+        const newProjectState = { 
+            ...currentProject, 
+            branches: updatedBranches
+        };
+
+        // Persistenza Task
         persistenceService.saveTask(branchId, taskToSave, isOfflineMode, supabaseClient, newProjectState);
+        
+        // Persistenza Ramo (se attivato)
+        if (branchToUpdate) {
+            persistenceService.saveBranch(currentProject.id, branchToUpdate, isOfflineMode, supabaseClient, newProjectState);
+        }
 
         const newProjects = [...prev];
         newProjects[projectIndex] = newProjectState;
