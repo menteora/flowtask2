@@ -166,7 +166,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
                         onClick={() => setEditingTask({ branchId, taskId: task.id })}
                     >
                         <div className="flex items-center gap-2 min-w-0">
-                            <span className={`text-[11px] truncate hover:text-indigo-600 dark:hover:text-indigo-400 ${task.completed ? 'line-through text-gray-400' : 'text-slate-600 dark:text-slate-300'}`}>
+                            <span className={`text-[11px] break-words hover:text-indigo-600 dark:hover:text-indigo-400 ${task.completed ? 'line-through text-gray-400' : 'text-slate-600 dark:text-slate-300'}`}>
                                 {task.title}
                             </span>
                         </div>

@@ -40,7 +40,6 @@ const TaskEditorModal: React.FC = () => {
     return undefined;
   }, [state.branches, state.people]);
 
-  // Fix: Added missing useMemo import from React
   const inheritedResponsible = useMemo(() => {
     if (!editingTask) return undefined;
     const b = state.branches[editingTask.branchId];
@@ -245,14 +244,19 @@ const TaskEditorModal: React.FC = () => {
                     >
                         {completed ? <CheckSquare className="w-6 h-6" /> : <Square className="w-6 h-6" />}
                     </button>
-                    <input
+                    <textarea
                         autoFocus
-                        type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        onKeyDown={handleKeyDown}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSave();
+                            }
+                        }}
                         placeholder="Nome del task..."
-                        className="flex-1 text-lg font-medium bg-transparent border-b border-transparent focus:border-indigo-500 outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
+                        rows={1}
+                        className="flex-1 text-lg font-bold bg-transparent border-b border-transparent focus:border-indigo-500 outline-none text-slate-900 dark:text-white placeholder:text-slate-400 resize-none h-auto min-h-[1.75rem] leading-tight"
                     />
                 </div>
                 

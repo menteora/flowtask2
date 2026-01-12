@@ -146,7 +146,7 @@ const TaskDescriptionReader: React.FC = () => {
                     {task.completed ? <CheckSquare className="w-6 h-6" /> : <Square className="w-6 h-6" />}
                 </button>
                 <div className="min-w-0 flex-1">
-                    <h2 className={`text-xl font-bold truncate ${task.completed ? 'line-through text-slate-400' : 'text-slate-800 dark:text-white'}`}>
+                    <h2 className={`text-xl font-bold break-words ${task.completed ? 'line-through text-slate-400' : 'text-slate-800 dark:text-white'}`}>
                         {task.title}
                     </h2>
                     <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400">

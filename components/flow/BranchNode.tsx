@@ -305,7 +305,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                                     />
                                     <span 
                                         onClick={(e) => { e.stopPropagation(); setEditingTask({ branchId: branch.id, taskId: task.id }); }}
-                                        className={`truncate text-slate-600 dark:text-slate-300 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors ${task.completed ? 'line-through opacity-60' : ''}`}
+                                        className={`break-words whitespace-normal text-slate-600 dark:text-slate-300 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors ${task.completed ? 'line-through opacity-60' : ''}`}
                                     >
                                         {task.title}
                                     </span>
