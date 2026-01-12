@@ -1,11 +1,12 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
 import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
-import { ChevronRight, ChevronDown, Plus, FileText, CheckSquare, Square, Archive, GitBranch, ChevronUp, Tag, Calendar, CheckCircle2, ChevronsDown, ChevronsUp, Layers, RefreshCw, Zap, ArrowUp, ArrowDown, Folder, Compass } from 'lucide-react';
+import { ChevronRight, ChevronDown, Plus, FileText, CheckSquare, Square, Archive, GitBranch, ChevronUp, Tag, Calendar, CheckCircle2, ChevronsDown, ChevronsUp, Layers, RefreshCw, Zap, ArrowUp, ArrowDown, Folder, Compass, Quote } from 'lucide-react';
 import Avatar from '../ui/Avatar';
+import Markdown from '../ui/Markdown';
 
 interface FolderNodeProps {
   branchId: string;
@@ -19,6 +20,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
   const { selectBranch, selectedBranchId, addBranch, updateBranch, moveBranch, showArchived } = useBranch();
   const { updateTask, moveTask, showOnlyOpen, setEditingTask } = useTask();
   
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const branch = state.branches[branchId];
   
   if (!branch) return null;
@@ -138,6 +140,28 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
             </button>
         </div>
       </div>
+
+      {/* Accordion per Descrizione Obiettivo (Mobile focus) */}
+      {branch.type === 'objective' && branch.description && (
+          <div className="mt-1 mb-2 px-4" style={{ paddingLeft: `${depth * 1.25 + 3.5}rem` }}>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setIsDescriptionExpanded(!isDescriptionExpanded); }}
+                className="flex items-center gap-1.5 text-[10px] font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-tight hover:underline transition-all"
+              >
+                  <Quote className={`w-3 h-3 transition-transform duration-300 ${isDescriptionExpanded ? 'rotate-180' : ''}`} />
+                  {isDescriptionExpanded ? 'Chiudi Obiettivo' : 'Vedi Obiettivo'}
+              </button>
+              
+              {isDescriptionExpanded && (
+                  <div className="mt-2 p-3 bg-cyan-50/50 dark:bg-cyan-900/10 border border-cyan-100 dark:border-cyan-900/30 rounded-xl animate-in slide-in-from-top-1 duration-200 shadow-inner">
+                      <Markdown 
+                        content={branch.description} 
+                        className="!text-[11px] !text-cyan-800 dark:!text-cyan-200 !leading-snug italic"
+                      />
+                  </div>
+              )}
+          </div>
+      )}
 
       {isOpen && hasContent && (
         <div className="flex flex-col">

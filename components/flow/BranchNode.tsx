@@ -7,6 +7,7 @@ import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
 import { Plus, Calendar, Archive, FileText, ChevronDown, ChevronUp, GitMerge, Tag, Eye, CheckCircle2, Zap, RefreshCw, ChevronLeft, ChevronRight, CornerDownRight, Folder, Compass, Quote, ChevronsDown, ChevronsUp } from 'lucide-react';
 import Avatar from '../ui/Avatar';
+import Markdown from '../ui/Markdown';
 
 interface BranchNodeProps {
   branchId: string;
@@ -183,12 +184,15 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                 </div>
 
                 {isObjective && hasDescription && (
-                    <div className="px-3 pb-3 pt-1 border-t border-cyan-100 dark:border-cyan-900/30 bg-cyan-50/30 dark:bg-cyan-900/5">
-                        <p className="text-[11px] text-cyan-600 dark:text-cyan-400 italic font-medium leading-tight line-clamp-3 relative pl-4 pr-3 py-1">
-                            <Quote className="w-2 h-2 absolute left-1 top-1 opacity-40 rotate-180" />
-                            {branch.description}
-                            <Quote className="w-2 h-2 inline-block ml-1 opacity-40 translate-y-1" />
-                        </p>
+                    <div className="px-3 pb-3 pt-1 border-t border-cyan-100 dark:border-cyan-900/30 bg-cyan-50/30 dark:bg-cyan-900/5 group/objective">
+                        <div className="relative pl-5 pr-3 py-1 overflow-hidden transition-all duration-300 max-h-[88px] group-hover/objective:max-h-[500px]">
+                            <Quote className="w-3 h-3 absolute left-1 top-1 text-cyan-500/40 rotate-180" />
+                            <Markdown 
+                                content={branch.description || ''} 
+                                className="!text-[11px] !text-cyan-700 dark:!text-cyan-300 !leading-tight !font-medium italic"
+                            />
+                            <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-cyan-50/80 dark:from-cyan-950/20 to-transparent group-hover/objective:hidden"></div>
+                        </div>
                     </div>
                 )}
 
