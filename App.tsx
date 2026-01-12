@@ -105,7 +105,7 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col h-[100dvh] w-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans relative">
+    <div className="flex flex-col h-[100dvh] w-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-gray-100 transition-colors duration-200 relative">
       {notification && (
         <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[200] w-[90%] max-w-md px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 transition-all transform animate-in fade-in slide-in-from-top-4 ${notification.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
             {notification.type === 'success' ? <Check className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
@@ -308,6 +308,7 @@ const App: React.FC = () => {
         <button onClick={() => setCurrentView('workflow')} className={`flex flex-col items-center p-2 ${currentView === 'workflow' ? 'text-indigo-600' : 'text-slate-500'}`}><Layers className="w-6 h-6" /><span className="text-[10px] mt-1 font-black uppercase">Flow</span></button>
         <button onClick={() => setCurrentView('focus')} className={`flex flex-col items-center p-2 ${currentView === 'focus' ? 'text-indigo-600' : 'text-slate-500'}`}><Target className="w-6 h-6" /><span className="text-[10px] mt-1 font-black uppercase">Focus</span></button>
         <button onClick={() => setCurrentView('assignments')} className={`flex flex-col items-center p-2 ${currentView === 'assignments' ? 'text-indigo-600' : 'text-slate-500'}`}><ClipboardList className="w-6 h-6" /><span className="text-[10px] mt-1 font-black uppercase">Task</span></button>
+        <button onClick={() => setCurrentView('timeline')} className={`flex flex-col items-center p-2 ${currentView === 'timeline' ? 'text-indigo-600' : 'text-slate-500'}`}><GanttChart className="w-6 h-6" /><span className="text-[10px] mt-1 font-black uppercase">Time</span></button>
         <button onClick={() => setCurrentView('calendar')} className={`flex flex-col items-center p-2 ${currentView === 'calendar' ? 'text-indigo-600' : 'text-slate-500'}`}><Calendar className="w-6 h-6" /><span className="text-[10px] mt-1 font-black uppercase">Date</span></button>
         <button onClick={() => setCurrentView('team')} className={`flex flex-col items-center p-2 ${currentView === 'team' ? 'text-indigo-600' : 'text-slate-500'}`}><Users className="w-6 h-6" /><span className="text-[10px] mt-1 font-black uppercase">Team</span></button>
       </div>
