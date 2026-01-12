@@ -27,9 +27,18 @@ const TaskEditorModal: React.FC = () => {
   const [popupInput, setPopupInput] = useState('');
   const popupInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [targetBranchId, setTargetBranchId] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Auto-resize for title
+  const adjustTitleHeight = useCallback(() => {
+    if (titleTextareaRef.current) {
+      titleTextareaRef.current.style.height = 'auto';
+      titleTextareaRef.current.style.height = `${titleTextareaRef.current.scrollHeight}px`;
+    }
+  }, []);
 
   // Inheritance Logic
   const getInheritedResponsible = useCallback((bid: string): Person | undefined => {
@@ -40,7 +49,6 @@ const TaskEditorModal: React.FC = () => {
     return undefined;
   }, [state.branches, state.people]);
 
-  // Fix: Added missing useMemo import from React
   const inheritedResponsible = useMemo(() => {
     if (!editingTask) return undefined;
     const b = state.branches[editingTask.branchId];
@@ -78,19 +86,25 @@ const TaskEditorModal: React.FC = () => {
             }
 
             setIsVisible(true);
+            // Trigger height adjustment after state is set
+            setTimeout(adjustTitleHeight, 0);
         } else {
             setEditingTask(null);
         }
     } else {
         setTimeout(() => setIsVisible(false), 200);
     }
-  }, [editingTask, state.branches, setEditingTask]);
+  }, [editingTask, state.branches, setEditingTask, adjustTitleHeight]);
 
   useEffect(() => {
       if (popupMode && popupInputRef.current) {
           popupInputRef.current.focus();
       }
   }, [popupMode]);
+
+  useEffect(() => {
+      adjustTitleHeight();
+  }, [title, adjustTitleHeight]);
 
   if (!editingTask && !isVisible) return null;
 
@@ -222,7 +236,7 @@ const TaskEditorModal: React.FC = () => {
             </button>
         </div>
 
-        <div className="p-4 space-y-4 overflow-y-auto relative">
+        <div className="p-4 space-y-4 overflow-y-auto relative custom-scrollbar">
             {showDeleteConfirm && (
                 <div className="absolute inset-0 z-50 bg-white/95 dark:bg-slate-900/95 flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in-95">
                     <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-full mb-4">
@@ -238,21 +252,27 @@ const TaskEditorModal: React.FC = () => {
             )}
 
             <div className="flex flex-col gap-3">
-                <div className="flex gap-3">
+                <div className="flex gap-3 items-start">
                     <button 
                         onClick={() => setCompleted(!completed)}
                         className={`mt-1 flex-shrink-0 ${completed ? 'text-green-500' : 'text-slate-300 dark:text-slate-500 hover:text-indigo-500'}`}
                     >
                         {completed ? <CheckSquare className="w-6 h-6" /> : <Square className="w-6 h-6" />}
                     </button>
-                    <input
+                    <textarea
+                        ref={titleTextareaRef}
                         autoFocus
-                        type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        onKeyDown={handleKeyDown}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSave();
+                            }
+                        }}
                         placeholder="Nome del task..."
-                        className="flex-1 text-lg font-medium bg-transparent border-b border-transparent focus:border-indigo-500 outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
+                        rows={1}
+                        className="flex-1 text-lg font-bold bg-transparent border-b border-transparent focus:border-indigo-500 outline-none text-slate-900 dark:text-white placeholder:text-slate-400 resize-none min-h-[1.75rem] leading-tight overflow-hidden transition-all duration-75"
                     />
                 </div>
                 
@@ -397,7 +417,7 @@ const TaskEditorModal: React.FC = () => {
             </div>
         </div>
 
-        <div className="p-4 border-t border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/30 rounded-b-xl flex justify-between gap-3">
+        <div className="p-4 border-t border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/30 rounded-b-xl flex justify-between gap-3 flex-shrink-0">
             <button 
                 onClick={() => setShowDeleteConfirm(true)}
                 className="px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"

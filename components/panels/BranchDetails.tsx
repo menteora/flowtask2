@@ -468,7 +468,7 @@ const BranchDetails: React.FC = () => {
                             <div key={task.id} className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl group hover:border-indigo-300 transition-colors">
                                 <button onClick={() => updateTask(branch.id, task.id, { completed: !task.completed })} className={task.completed ? 'text-green-500' : 'text-slate-300 dark:text-slate-500 hover:text-indigo-500'}>{task.completed ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}</button>
                                 <div className="flex-1 min-w-0 flex items-center gap-2">
-                                    <span onClick={() => setEditingTask({ branchId: branch.id, taskId: task.id })} className={`text-sm cursor-pointer truncate ${task.completed ? 'line-through text-slate-400' : 'font-medium text-slate-700 dark:text-slate-200'}`}>{task.title}</span>
+                                    <span onClick={() => setEditingTask({ branchId: branch.id, taskId: task.id })} className={`text-sm cursor-pointer break-words ${task.completed ? 'line-through text-slate-400' : 'font-medium text-slate-700 dark:text-slate-200'}`}>{task.title}</span>
                                     {taskAssignee && (
                                         <div className="shrink-0" title={`Assegnato a ${taskAssignee.name}`}>
                                             <Avatar person={taskAssignee} size="sm" className="w-5 h-5 text-[8px]" />
