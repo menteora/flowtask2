@@ -11,8 +11,11 @@ import DatePicker from '../ui/DatePicker';
 import Markdown from '../ui/Markdown';
 
 const BranchDetails: React.FC = () => {
-  // @ts-ignore
-  const { state, session, isOfflineMode, showNotification, listProjectsFromSupabase, getProjectBranchesFromSupabase, moveLocalBranchToRemoteProject } = useProject();
+  const { 
+    state, session, isOfflineMode, showNotification, 
+    listProjectsFromSupabase, getProjectBranchesFromSupabase, moveLocalBranchToRemoteProject 
+  } = useProject();
+  
   const { selectedBranchId, selectBranch, updateBranch, deleteBranch, linkBranch, unlinkBranch, toggleBranchArchive } = useBranch();
   const { addTask, updateTask, moveTask, deleteTask, bulkUpdateTasks, bulkMoveTasks, setEditingTask, setReadingTask, showOnlyOpen } = useTask();
   
@@ -154,17 +157,19 @@ const BranchDetails: React.FC = () => {
       if (!branch || !selectedRemoteProj || !selectedRemoteParent) return;
       setIsLoadingRemote(true);
       try {
-          // @ts-ignore
           await moveLocalBranchToRemoteProject(branch.id, selectedRemoteProj, selectedRemoteParent);
           deleteBranch(branch.id);
           selectBranch(null);
-      } finally { setIsLoadingRemote(false); }
+      } catch (err) {
+          console.error(err);
+      } finally { 
+          setIsLoadingRemote(false); 
+      }
   };
 
   const fetchRemoteData = async () => {
       setIsLoadingRemote(true);
       try {
-          // @ts-ignore
           const projs = await listProjectsFromSupabase();
           setRemoteProjects((projs || []).filter((p: any) => p.id !== state.id));
       } finally { setIsLoadingRemote(false); }
@@ -173,13 +178,12 @@ const BranchDetails: React.FC = () => {
   useEffect(() => {
       if (selectedRemoteProj) {
           setIsLoadingRemote(true);
-          // @ts-ignore
           getProjectBranchesFromSupabase(selectedRemoteProj).then(res => {
               setRemoteBranches(res || []);
               setIsLoadingRemote(false);
           });
       }
-  }, [selectedRemoteProj]);
+  }, [selectedRemoteProj, getProjectBranchesFromSupabase]);
 
   const potentialParents = useMemo<Branch[]>(() => {
       if (!branch) return [];
@@ -264,14 +268,6 @@ const BranchDetails: React.FC = () => {
                     <div className="text-[9px] text-indigo-400 font-medium max-w-[100px] leading-tight">
                         I figli verranno chiamati "{localTitle} {new Date().getFullYear().toString().slice(-2)}-{String(localSprintCounter).padStart(2, '0')}"
                     </div>
-                </div>
-            )}
-            
-            {localType === 'objective' && (
-                <div className="p-3 bg-cyan-50/50 dark:bg-cyan-900/20 rounded-xl border border-cyan-100 dark:border-cyan-800 animate-in slide-in-from-top-2">
-                    <p className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold italic">
-                        La descrizione inserita qui sotto sarà sempre visibile nel nodo per mantenere il focus sull'obiettivo principale di questo ramo.
-                    </p>
                 </div>
             )}
         </div>
@@ -376,7 +372,7 @@ const BranchDetails: React.FC = () => {
         {/* Descrizione con Toolbar WYSIWYG e Preview */}
         <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
-                <label className="text-[10px] font-black uppercase text-slate-400">Descrizione {localType === 'objective' && '/ Motto'}</label>
+                <label className="text-[10px] font-black uppercase text-slate-400">Descrizione</label>
                 <button 
                     onClick={() => setIsPreviewMode(!isPreviewMode)}
                     className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline"
@@ -413,7 +409,7 @@ const BranchDetails: React.FC = () => {
                                 className="flex-1 text-xs p-1.5 border rounded dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                                 autoFocus
                             />
-                            <button onClick={applyPopupValue} className="p-1.5 bg-indigo-600 text-white rounded"><Check className="w-3 h-3" /></button>
+                            <button onClick={applyPopupValue} className="p-1 bg-indigo-600 text-white rounded"><Check className="w-3 h-3" /></button>
                         </div>
                     )}
 
@@ -422,7 +418,7 @@ const BranchDetails: React.FC = () => {
                         value={localDescription} 
                         onChange={(e) => setLocalDescription(e.target.value)} 
                         className="w-full h-32 p-3 text-sm bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 outline-none resize-none" 
-                        placeholder={localType === 'objective' ? "Inserisci qui il motto o l'obiettivo del ramo..." : "Aggiungi dettagli..."} 
+                        placeholder="Aggiungi dettagli..." 
                     />
                 </div>
             )}

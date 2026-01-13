@@ -43,6 +43,8 @@ interface ProjectContextType {
   loadProject: (json: any) => Promise<void>;
   uploadProjectToSupabase: () => Promise<void>;
   listProjectsFromSupabase: () => Promise<any[]>;
+  getProjectBranchesFromSupabase: (id: string) => Promise<Branch[]>;
+  moveLocalBranchToRemoteProject: (branchId: string, targetProjectId: string, targetParentId: string) => Promise<void>;
   downloadProjectFromSupabase: (id: string) => Promise<void>;
   deleteProjectFromSupabase: (id: string) => Promise<void>;
   exportAllToJSON: () => void;
@@ -79,7 +81,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const [supabaseConfig, setSupabaseConfigState] = useState(() => localStorageService.getSupabaseConfig());
-  // Fix: Replaced unknown 'Client' type with 'SupabaseClient'
   const [supabaseClient, setSupabaseClient] = useState<SupabaseClient | null>(null);
   const [session, setSession] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -90,7 +91,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [projects, setProjects] = useState<ProjectState[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string>('');
 
-  // Sincronizza l'ordine dei progetti nel localStorage
   useEffect(() => {
     if (!isInitializing && projects.length > 0) {
       localStorageService.saveOpenProjectIds(projects.map(p => p.id));
@@ -164,7 +164,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       }
 
-      // Applica l'ordine salvato
       const savedOrder = localStorageService.getOpenProjectIds();
       if (savedOrder.length > 0) {
         loadedProjects.sort((a, b) => {
@@ -310,6 +309,83 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [activeProject]);
 
+  const getProjectBranchesFromSupabase = useCallback(async (id: string): Promise<Branch[]> => {
+      if (!supabaseClient) return [];
+      const { data } = await supabaseService.fetchBranches(supabaseClient, id);
+      return data || [];
+  }, [supabaseClient]);
+
+  const moveLocalBranchToRemoteProject = useCallback(async (branchId: string, targetProjectId: string, targetParentId: string) => {
+    if (!supabaseClient || !session) {
+        showNotification("Devi essere online per spostare rami tra progetti.", "error");
+        return;
+    }
+
+    try {
+        const activeProj = projects.find(p => p.id === activeProjectId);
+        if (!activeProj) return;
+
+        // 1. Troviamo il ramo e tutti i suoi figli ricorsivamente
+        const branchesToMove: Branch[] = [];
+        const collectRecursive = (bid: string) => {
+            const b = activeProj.branches[bid];
+            if (b) {
+                branchesToMove.push(b);
+                b.childrenIds.forEach(collectRecursive);
+            }
+        };
+        collectRecursive(branchId);
+
+        // 2. Migrazione su Supabase
+        for (const b of branchesToMove) {
+            const isRootOfMove = b.id === branchId;
+            const updatedBranchPayload = {
+                ...b,
+                project_id: targetProjectId,
+                parent_ids: isRootOfMove ? [targetParentId] : b.parentIds,
+                version: (b.version || 1) + 1,
+                updated_at: new Date().toISOString()
+            };
+
+            // Usiamo il flag 'force: true' per l'upsert durante la migrazione
+            await supabaseService.upsertEntity(supabaseClient, 'flowtask_branches', updatedBranchPayload, true);
+
+            // Spostiamo anche i task
+            for (const t of b.tasks) {
+                await supabaseService.upsertEntity(supabaseClient, 'flowtask_tasks', {
+                    ...t,
+                    branch_id: b.id,
+                    version: (t.version || 1) + 1,
+                    updated_at: new Date().toISOString()
+                }, true);
+            }
+        }
+
+        // 3. Aggiorniamo il nuovo genitore nel progetto target
+        const { data: targetParentData } = await supabaseClient
+            .from('flowtask_branches')
+            .select('*')
+            .eq('id', targetParentId)
+            .single();
+
+        if (targetParentData) {
+            const newChildrenIds = Array.from(new Set([...(targetParentData.children_ids || []), branchId]));
+            await supabaseService.upsertEntity(supabaseClient, 'flowtask_branches', {
+                ...targetParentData,
+                children_ids: newChildrenIds,
+                version: (targetParentData.version || 1) + 1,
+                updated_at: new Date().toISOString()
+            }, true);
+        }
+
+        // 4. Pulizia nel progetto sorgente (viene gestito dalla deleteBranch nel componente chiamante)
+        showNotification("Ramo migrato correttamente!", "success");
+    } catch (err) {
+        console.error("Migration error:", err);
+        showNotification("Errore durante la migrazione.", "error");
+    }
+  }, [supabaseClient, session, activeProjectId, projects, showNotification]);
+
   return (
     <ProjectContext.Provider value={{
       state: activeProject, projects, activeProjectId, setActiveProjectId, session, userProfile,
@@ -327,6 +403,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const { data } = await supabaseService.fetchProjects(supabaseClient);
           return data || [];
       },
+      getProjectBranchesFromSupabase,
+      moveLocalBranchToRemoteProject,
       downloadProjectFromSupabase: async (id) => {
           if (!supabaseClient) return;
           const p = await supabaseService.downloadFullProject(supabaseClient, id);
