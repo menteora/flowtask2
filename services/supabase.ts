@@ -29,10 +29,12 @@ export const supabaseService = {
 
   /**
    * Gestisce l'inserimento o l'aggiornamento con controllo della concorrenza.
+   * Il payload contiene già la versione incrementata (target).
    */
-  async upsertEntity(client: SupabaseClient, table: string, payload: any, force: boolean = false) {
+  async upsertEntity(client: SupabaseClient, table: string, payload: any) {
     const { version, id, updatedAt, deletedAt, isDirty, ...rest } = payload;
     
+    // Gestione Soft Delete
     if (payload.deleted_at) {
         return client.from(table).update({ 
             deleted_at: payload.deleted_at, 
@@ -40,30 +42,34 @@ export const supabaseService = {
         }).eq('id', id);
     }
 
-    // Se force è true (es. migrazione), ignoriamo il check della versione precedente
-    if (!force && version && version > 1) {
+    // Se versione > 1, è un aggiornamento di un record esistente.
+    // Usiamo Optimistic Concurrency Control (OCC).
+    if (version && version > 1) {
       const previousVersion = version - 1;
       
       const { data, error } = await client
         .from(table)
         .update({ 
             ...rest, 
-            version: version 
+            version: version // Usiamo la versione già incrementata localmente
         })
         .eq('id', id)
-        .eq('version', previousVersion)
+        .eq('version', previousVersion) // Deve corrispondere alla versione precedente sul DB
         .select();
 
       if (error) return { error };
       
+      // Se data è vuoto, significa che eq('version', previousVersion) non ha trovato corrispondenze
+      // (Conflitto di versione: qualcuno ha aggiornato il record prima di noi)
       if (!data || data.length === 0) {
-        return { error: { message: 'CONCURRENCY_CONFLICT', details: 'Record out of sync.' } };
+        console.error(`Concurrency Conflict on ${table}:${id}. Local target: ${version}, DB expected: ${previousVersion}`);
+        return { error: { message: 'CONCURRENCY_CONFLICT', details: 'Il record è stato modificato da un altro utente o dispositivo.' } };
       }
       
       return { data };
     }
 
-    // Upsert standard (usato per nuovi record o migrazioni forzate)
+    // Per nuovi record (version = 1), usiamo upsert semplice.
     return client.from(table).upsert({ ...rest, id, version: version || 1 });
   },
 
@@ -120,10 +126,10 @@ export const supabaseService = {
   async uploadFullProject(client: SupabaseClient, project: ProjectState, userId: string) {
     await this.upsertEntity(client, 'flowtask_projects', {
       id: project.id, name: project.name, root_branch_id: project.rootBranchId, owner_id: userId, version: project.version
-    }, true);
+    });
 
     for (const person of project.people) {
-      await this.upsertEntity(client, 'flowtask_people', { ...person, project_id: project.id }, true);
+      await this.upsertEntity(client, 'flowtask_people', { ...person, project_id: project.id });
     }
 
     for (const b of Object.values(project.branches)) {
@@ -134,13 +140,13 @@ export const supabaseService = {
           collapsed: b.collapsed, sprint_counter: b.sprintCounter || 1, 
           parent_ids: b.parentIds, children_ids: b.childrenIds,
           responsible_id: b.responsibleId, position: b.position || 0, version: b.version
-      }, true);
+      });
 
       for (const t of b.tasks) {
         await this.upsertEntity(client, 'flowtask_tasks', {
           id: t.id, branch_id: b.id, title: t.title, description: t.description, assignee_id: t.assigneeId,
           due_date: t.dueDate, completed: t.completed, completed_at: t.completedAt, position: t.position || 0, pinned: t.pinned || false, version: t.version
-        }, true);
+        });
       }
     }
   }
