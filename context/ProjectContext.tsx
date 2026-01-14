@@ -54,7 +54,6 @@ const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 const LOADING_PROJECT: ProjectState = {
     id: 'loading',
     name: 'Caricamento...',
-    rootBranchId: 'root',
     version: 1,
     people: [],
     branches: {
@@ -65,7 +64,7 @@ const LOADING_PROJECT: ProjectState = {
             type: 'standard',
             tasks: [],
             childrenIds: [],
-            parentIds: [],
+            parentIds: ['loading'], // Root points to loading project
             version: 1
         }
     }
@@ -79,7 +78,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const [supabaseConfig, setSupabaseConfigState] = useState(() => localStorageService.getSupabaseConfig());
-  // Fix: Replaced unknown 'Client' type with 'SupabaseClient'
   const [supabaseClient, setSupabaseClient] = useState<SupabaseClient | null>(null);
   const [session, setSession] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -90,7 +88,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [projects, setProjects] = useState<ProjectState[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string>('');
 
-  // Sincronizza l'ordine dei progetti nel localStorage
   useEffect(() => {
     if (!isInitializing && projects.length > 0) {
       localStorageService.saveOpenProjectIds(projects.map(p => p.id));
@@ -164,7 +161,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       }
 
-      // Applica l'ordine salvato
       const savedOrder = localStorageService.getOpenProjectIds();
       if (savedOrder.length > 0) {
         loadedProjects.sort((a, b) => {

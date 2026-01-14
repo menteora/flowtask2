@@ -29,12 +29,10 @@ export const supabaseService = {
 
   /**
    * Gestisce l'inserimento o l'aggiornamento con controllo della concorrenza.
-   * Il payload contiene già la versione incrementata (target).
    */
   async upsertEntity(client: SupabaseClient, table: string, payload: any) {
     const { version, id, updatedAt, deletedAt, isDirty, ...rest } = payload;
     
-    // Gestione Soft Delete
     if (payload.deleted_at) {
         return client.from(table).update({ 
             deleted_at: payload.deleted_at, 
@@ -42,8 +40,6 @@ export const supabaseService = {
         }).eq('id', id);
     }
 
-    // Se versione > 1, è un aggiornamento di un record esistente.
-    // Usiamo Optimistic Concurrency Control (OCC).
     if (version && version > 1) {
       const previousVersion = version - 1;
       
@@ -51,25 +47,21 @@ export const supabaseService = {
         .from(table)
         .update({ 
             ...rest, 
-            version: version // Usiamo la versione già incrementata localmente
+            version: version 
         })
         .eq('id', id)
-        .eq('version', previousVersion) // Deve corrispondere alla versione precedente sul DB
+        .eq('version', previousVersion) 
         .select();
 
       if (error) return { error };
       
-      // Se data è vuoto, significa che eq('version', previousVersion) non ha trovato corrispondenze
-      // (Conflitto di versione: qualcuno ha aggiornato il record prima di noi)
       if (!data || data.length === 0) {
-        console.error(`Concurrency Conflict on ${table}:${id}. Local target: ${version}, DB expected: ${previousVersion}`);
         return { error: { message: 'CONCURRENCY_CONFLICT', details: 'Il record è stato modificato da un altro utente o dispositivo.' } };
       }
       
       return { data };
     }
 
-    // Per nuovi record (version = 1), usiamo upsert semplice.
     return client.from(table).upsert({ ...rest, id, version: version || 1 });
   },
 
@@ -120,12 +112,12 @@ export const supabaseService = {
       };
     });
 
-    return { id: p.id, name: p.name, rootBranchId: p.root_branch_id, branches, people, version: p.version || 1, updatedAt: p.updated_at };
+    return { id: p.id, name: p.name, branches, people, version: p.version || 1, updatedAt: p.updated_at };
   },
 
   async uploadFullProject(client: SupabaseClient, project: ProjectState, userId: string) {
     await this.upsertEntity(client, 'flowtask_projects', {
-      id: project.id, name: project.name, root_branch_id: project.rootBranchId, owner_id: userId, version: project.version
+      id: project.id, name: project.name, owner_id: userId, version: project.version
     });
 
     for (const person of project.people) {

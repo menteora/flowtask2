@@ -52,18 +52,24 @@ const SettingsPanel: React.FC = () => {
       } finally { setIsLoadingList(false); }
   };
 
+  /**
+   * Handles project upload to Supabase cloud.
+   */
   const handleUpload = async () => {
-      setIsUploading(true);
-      try {
-          await uploadProjectToSupabase();
-          showNotification("Progetto caricato sul cloud!", 'success');
-          handleListProjects();
-      } catch (e) {
-          showNotification("Errore durante il caricamento.", 'error');
-      } finally { setIsUploading(false); }
+    setIsUploading(true);
+    try {
+      await uploadProjectToSupabase();
+      showNotification("Progetto caricato sul cloud con successo.", 'success');
+      // Refresh list after successful upload
+      handleListProjects();
+    } catch (err) {
+      showNotification("Errore durante il caricamento del progetto.", 'error');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  const fullSqlSetup = `-- CONFIGURAZIONE DATABASE FLOWTASK REFEACTORED (DIRETTA)
+  const fullSqlSetup = `-- CONFIGURAZIONE DATABASE FLOWTASK REFEACTORED
 
 -- 1. Funzione aggiornamento automatico timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -78,7 +84,6 @@ $$ language 'plpgsql';
 CREATE TABLE IF NOT EXISTS public.flowtask_projects (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    root_branch_id TEXT,
     owner_id UUID REFERENCES auth.users(id),
     version INTEGER DEFAULT 1,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -86,13 +91,14 @@ CREATE TABLE IF NOT EXISTS public.flowtask_projects (
 );
 
 -- 3. Tabella Rami (Branches)
+-- Nota: I rami radice hanno l'id del progetto nel campo parent_ids
 CREATE TABLE IF NOT EXISTS public.flowtask_branches (
     id TEXT PRIMARY KEY,
     project_id TEXT REFERENCES public.flowtask_projects(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     description TEXT,
     status TEXT DEFAULT 'PLANNED',
-    type TEXT DEFAULT 'standard', -- Nuovo campo centralizzato (standard, label, sprint)
+    type TEXT DEFAULT 'standard',
     color TEXT, 
     responsible_id TEXT,
     start_date TEXT,
@@ -129,7 +135,7 @@ CREATE TABLE IF NOT EXISTS public.flowtask_tasks (
 -- 5. Tabella Persone (Team)
 CREATE TABLE IF NOT EXISTS public.flowtask_people (
     id TEXT PRIMARY KEY,
-    project_id TEXT REFERENCES public.flowtask_projects(id) ON DELETE CASCADE,
+    project_id TEXT REFERENCES public.flowtask_people(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     email TEXT,
     phone TEXT,

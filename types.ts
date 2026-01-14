@@ -70,7 +70,6 @@ export interface ProjectState {
   name: string; 
   branches: Record<string, Branch>;
   people: Person[];
-  rootBranchId: string;
   version: number;
   updatedAt?: string;
 }

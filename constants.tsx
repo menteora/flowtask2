@@ -15,7 +15,6 @@ export const createInitialProjectState = (name: string = 'Nuovo Progetto'): Proj
   return {
     id: projectId,
     name: name,
-    rootBranchId: rootBranchId,
     people: [],
     version: 1,
     branches: {
@@ -24,10 +23,10 @@ export const createInitialProjectState = (name: string = 'Nuovo Progetto'): Proj
         title: 'Inizio Progetto',
         description: 'Punto di partenza del flusso',
         status: BranchStatus.PLANNED,
-        type: 'label', // Ereditato da isLabel: true
+        type: 'label', 
         tasks: [],
         childrenIds: [],
-        parentIds: [],
+        parentIds: [projectId], // Ora punta al progetto
         version: 1,
       }
     }
