@@ -47,7 +47,6 @@ export interface Branch {
   endDate?: string;   
   dueDate?: string;   
   tasks: Task[];
-  childrenIds: string[];
   parentIds: string[]; 
   archived?: boolean;
   collapsed?: boolean; 

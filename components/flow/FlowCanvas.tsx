@@ -15,7 +15,10 @@ const isSubtreeVisible = (branchId: string, branches: Record<string, Branch>, sh
     if (!branch) return false;
     if (showArchived) return true;
     if (!branch.archived) return true;
-    return branch.childrenIds.some(cid => isSubtreeVisible(cid, branches, showArchived));
+    
+    // Check if any children are visible
+    const children = Object.values(branches).filter(b => b.parentIds?.includes(branchId));
+    return children.some(c => isSubtreeVisible(c.id, branches, showArchived));
 };
 
 const SkippedNodeIndicator: React.FC<{ title: string }> = ({ title }) => (
@@ -44,7 +47,17 @@ const TreeLevel: React.FC<TreeLevelProps> = ({ branchId }) => {
       return null;
   }
 
-  const visibleChildrenIds = branch.childrenIds.filter(cid => isSubtreeVisible(cid, state.branches, showArchived));
+  // Calculate visible children dynamically
+  // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error
+  const children = useMemo(() => {
+      return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(branchId));
+  }, [state.branches, branchId]);
+
+  const visibleChildrenIds = children
+      .filter(c => isSubtreeVisible(c.id, state.branches, showArchived))
+      .sort((a, b) => (a.position || 0) - (b.position || 0))
+      .map(c => c.id);
+      
   const hasVisibleChildren = visibleChildrenIds.length > 0;
   const isCollapsed = branch.collapsed;
 
@@ -93,9 +106,9 @@ const FlowCanvas: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
 
+  // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error and access properties correctly
   const rootBranches = useMemo(() => {
-    // Cast Object.values(state.branches) to Branch[] to fix the 'unknown' property error
-    return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds.includes(state.id));
+    return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(state.id)).sort((a, b) => (a.position || 0) - (b.position || 0));
   }, [state.branches, state.id]);
 
   const handleMouseDown = (e: React.MouseEvent) => {

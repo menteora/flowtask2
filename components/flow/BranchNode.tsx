@@ -45,6 +45,12 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
     });
   }, [branch?.tasks, showOnlyOpen]);
 
+  // Compute children dynamically
+  // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error
+  const children = useMemo(() => {
+      return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(branchId));
+  }, [state.branches, branchId]);
+
   const getInheritedResponsible = useCallback((bid: string): Person | undefined => {
     const b = state.branches[bid];
     if (!b) return undefined;
@@ -75,15 +81,21 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
   const effectiveBranchResp = currentResp || inheritedResp;
 
   const hasDescription = branch.description && branch.description.trim().length > 0;
-  const hasChildren = branch.childrenIds.length > 0;
+  const hasChildren = children.length > 0;
   const isMultiParent = branch.parentIds.length > 1;
 
   const isRootBranch = branch.parentIds.includes(state.id);
   const parentId = branch.parentIds[0];
-  const parent = parentId && !isRootBranch ? state.branches[parentId] : null;
-  const siblingIndex = parent ? parent.childrenIds.indexOf(branchId) : -1;
+  // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error and access properties correctly
+  const siblings = useMemo(() => {
+      if (isRootBranch) return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(state.id)).sort((a, b) => (a.position || 0) - (b.position || 0));
+      if (!parentId) return [];
+      return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(parentId)).sort((a, b) => (a.position || 0) - (b.position || 0));
+  }, [state.branches, parentId, isRootBranch, state.id]);
+
+  const siblingIndex = siblings.findIndex(b => b.id === branchId);
   const canMoveLeft = siblingIndex > 0;
-  const canMoveRight = parent ? siblingIndex < parent.childrenIds.length - 1 : false;
+  const canMoveRight = siblingIndex < siblings.length - 1;
 
   const visibleTasks = isTasksExpanded ? sortedTasks : sortedTasks.slice(0, 3);
   const hiddenTasksCount = sortedTasks.length > 3 ? sortedTasks.length - 3 : 0;
@@ -135,7 +147,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                  
                  {branch.collapsed && (
                      <div className="absolute -right-1.5 -top-1.5 bg-rose-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-slate-800 shadow-sm animate-in zoom-in duration-300">
-                         {branch.childrenIds.length}
+                         {children.length}
                      </div>
                  )}
              </button>
@@ -213,7 +225,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                 <Plus className="w-3.5 h-3.5" />
             </button>
             
-            {!branch.collapsed && branch.childrenIds.length > 0 && (
+            {!branch.collapsed && children.length > 0 && (
                 <div className="h-4 w-px bg-slate-300 dark:bg-slate-600"></div>
             )}
         </div>
@@ -397,7 +409,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
         <Plus className="w-3.5 h-3.5" />
       </button>
       
-      {!branch.collapsed && branch.childrenIds.length > 0 && (
+      {!branch.collapsed && children.length > 0 && (
         <div className="h-4 w-px bg-slate-300 dark:bg-slate-600"></div>
       )}
     </div>

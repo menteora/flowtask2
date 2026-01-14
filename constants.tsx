@@ -25,7 +25,6 @@ export const createInitialProjectState = (name: string = 'Nuovo Progetto'): Proj
         status: BranchStatus.PLANNED,
         type: 'label', 
         tasks: [],
-        childrenIds: [],
         parentIds: [projectId], // Ora punta al progetto
         version: 1,
       }

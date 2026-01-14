@@ -26,11 +26,14 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
   
   if (!branch) return null;
   
+  // Compute children dynamically
+  // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error
+  const children = useMemo(() => {
+      return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(branchId));
+  }, [state.branches, branchId]);
+
   const isSelfVisible = !branch.archived || showArchived;
-  const hasActiveChildren = branch.childrenIds.some(cid => {
-      const child = state.branches[cid];
-      return child && !child.archived;
-  });
+  const hasActiveChildren = children.some(c => !c.archived);
 
   const shouldRender = isSelfVisible || hasActiveChildren;
   if (!shouldRender) return null;
@@ -48,8 +51,8 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
     });
   }, [branch.tasks, showOnlyOpen]);
 
-  const visibleChildrenIds = branch.childrenIds;
-  const hasChildren = visibleChildrenIds.length > 0;
+  const visibleChildren = children.sort((a, b) => (a.position || 0) - (b.position || 0));
+  const hasChildren = visibleChildren.length > 0;
   const hasTasks = sortedTasks.length > 0;
   const hasContent = hasChildren || hasTasks;
   
@@ -185,8 +188,8 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
                  </div>
              );
           })}
-          {visibleChildrenIds.map((childId, idx) => (
-            <FolderNode key={childId} branchId={childId} depth={depth + 1} index={idx} siblingsCount={visibleChildrenIds.length} />
+          {visibleChildren.map((child, idx) => (
+            <FolderNode key={child.id} branchId={child.id} depth={depth + 1} index={idx} siblingsCount={visibleChildren.length} />
           ))}
         </div>
       )}
@@ -199,9 +202,9 @@ const FolderTree: React.FC = () => {
     const { setAllBranchesCollapsed } = useBranch();
     const branchesCount = Object.keys(state.branches).length - 1;
     
+    // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error and access properties correctly
     const rootBranches = useMemo(() => {
-        // Cast Object.values(state.branches) to Branch[] to fix the 'unknown' property error
-        return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds.includes(state.id));
+        return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(state.id)).sort((a, b) => (a.position || 0) - (b.position || 0));
     }, [state.branches, state.id]);
 
     return (

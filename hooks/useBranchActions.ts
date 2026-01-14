@@ -37,7 +37,6 @@ export const useBranchActions = (
 
         let title = 'Nuovo Ramo';
         let newSprintCounter = parent.sprintCounter;
-        let type = 'standard';
 
         if (parent.type === 'sprint') {
             const counter = parent.sprintCounter || 1;
@@ -45,33 +44,39 @@ export const useBranchActions = (
             newSprintCounter = counter + 1;
         }
 
+        // Calculate sibling index by searching all branches for current parent
+        const siblingCount = Object.values(p.branches).filter((b: any) => b.parentIds?.includes(parentId)).length;
+
         const newBranch: Branch = {
             id: newId,
             title,
             status: BranchStatus.PLANNED,
             type: 'standard', // DEFAULT
             tasks: [],
-            childrenIds: [],
             parentIds: [parentId],
-            position: (parent.childrenIds || []).length,
+            position: siblingCount,
             version: 1,
             updatedAt: new Date().toISOString()
         };
 
         const updatedBranches = { ...p.branches };
         updatedBranches[newId] = newBranch;
-        updatedBranches[parentId] = {
-            ...parent,
-            childrenIds: [...parent.childrenIds, newId],
-            sprintCounter: newSprintCounter,
-            updatedAt: new Date().toISOString()
-        };
+        
+        // Update parent only if sprint counter changed
+        if (newSprintCounter !== parent.sprintCounter) {
+            updatedBranches[parentId] = {
+                ...parent,
+                sprintCounter: newSprintCounter,
+                updatedAt: new Date().toISOString()
+            };
+        }
 
         const newState = { ...p, branches: updatedBranches };
         
-        // Persistiamo entrambi
         persistenceService.saveBranch(p.id, newBranch, isOfflineMode, supabaseClient, newState);
-        persistenceService.saveBranch(p.id, updatedBranches[parentId], isOfflineMode, supabaseClient, newState);
+        if (newSprintCounter !== parent.sprintCounter) {
+            persistenceService.saveBranch(p.id, updatedBranches[parentId], isOfflineMode, supabaseClient, newState);
+        }
         
         return newState;
     }));
@@ -99,25 +104,33 @@ export const useBranchActions = (
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
   const moveBranch = useCallback(async (branchId: string, direction: 'prev' | 'next') => {
-    // Implementazione semplificata per spostamento locale
     setProjects((prev: any[]) => prev.map(p => {
         if (p.id !== activeProjectId) return p;
         const branch = p.branches[branchId];
         if (!branch || !branch.parentIds[0]) return p;
         
         const parentId = branch.parentIds[0];
-        const parent = p.branches[parentId];
-        const children = [...parent.childrenIds];
-        const idx = children.indexOf(branchId);
+        // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error and access properties correctly
+        const siblings = (Object.values(p.branches) as Branch[])
+            .filter((b: Branch) => b.parentIds?.includes(parentId))
+            .sort((a: Branch, b: Branch) => (a.position ?? 0) - (b.position ?? 0));
+            
+        const idx = siblings.findIndex(b => b.id === branchId);
         const targetIdx = direction === 'prev' ? idx - 1 : idx + 1;
-        if (targetIdx < 0 || targetIdx >= children.length) return p;
+        if (targetIdx < 0 || targetIdx >= siblings.length) return p;
 
-        [children[idx], children[targetIdx]] = [children[targetIdx], children[idx]];
-        const updatedParent = { ...parent, childrenIds: children, updatedAt: new Date().toISOString() };
-        const updatedBranches = { ...p.branches, [parentId]: updatedParent };
+        const targetBranch = siblings[targetIdx];
+        const newPos = targetBranch.position;
+        const oldPos = branch.position;
+
+        const updatedBranch = { ...branch, position: newPos, updatedAt: new Date().toISOString() };
+        const updatedTarget = { ...targetBranch, position: oldPos, updatedAt: new Date().toISOString() };
+        
+        const updatedBranches = { ...p.branches, [branch.id]: updatedBranch, [targetBranch.id]: updatedTarget };
         const newState = { ...p, branches: updatedBranches };
         
-        persistenceService.saveBranch(p.id, updatedParent, isOfflineMode, supabaseClient, newState);
+        persistenceService.saveBranch(p.id, updatedBranch, isOfflineMode, supabaseClient, newState);
+        persistenceService.saveBranch(p.id, updatedTarget, isOfflineMode, supabaseClient, newState);
         return newState;
     }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
@@ -128,11 +141,6 @@ export const useBranchActions = (
         const updatedBranches = { ...p.branches };
         delete updatedBranches[branchId];
         
-        // Pulizia riferimenti genitori
-        Object.keys(updatedBranches).forEach(id => {
-            updatedBranches[id].childrenIds = updatedBranches[id].childrenIds.filter(cid => cid !== branchId);
-        });
-
         const newState = { ...p, branches: updatedBranches };
         persistenceService.deleteBranch(branchId, isOfflineMode, supabaseClient, newState);
         return newState;
@@ -140,25 +148,34 @@ export const useBranchActions = (
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
   const toggleBranchArchive = useCallback(async (branchId: string) => {
-      updateBranch(branchId, { archived: true }); // Simplified toggle for logic
-  }, [updateBranch]);
+      // Find branch and toggle its archive state
+      setProjects((prev: any[]) => prev.map(p => {
+          if (p.id !== activeProjectId) return p;
+          const b = p.branches[branchId];
+          if (!b) return p;
+          const updated = { ...b, archived: !b.archived, updatedAt: new Date().toISOString() };
+          const newState = { ...p, branches: { ...p.branches, [branchId]: updated } };
+          persistenceService.saveBranch(p.id, updated, isOfflineMode, supabaseClient, newState);
+          return newState;
+      }));
+  }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
   const linkBranch = useCallback(async (childId: string, parentId: string) => {
       setProjects((prev: any[]) => prev.map(p => {
           if (p.id !== activeProjectId) return p;
           const child = p.branches[childId];
-          const parent = p.branches[parentId];
-          if (!child || !parent) return p;
+          if (!child) return p;
 
-          const updatedChild = { ...child, parentIds: Array.from(new Set([...child.parentIds, parentId])) };
-          const updatedParent = { ...parent, childrenIds: Array.from(new Set([...parent.childrenIds, childId])) };
+          const updatedChild = { 
+              ...child, 
+              parentIds: Array.from(new Set([...child.parentIds, parentId])),
+              updatedAt: new Date().toISOString()
+          };
           
-          const updatedBranches = { ...p.branches, [childId]: updatedChild, [parentId]: updatedParent };
+          const updatedBranches = { ...p.branches, [childId]: updatedChild };
           const newState = { ...p, branches: updatedBranches };
 
           persistenceService.saveBranch(p.id, updatedChild, isOfflineMode, supabaseClient, newState);
-          persistenceService.saveBranch(p.id, updatedParent, isOfflineMode, supabaseClient, newState);
-          
           return newState;
       }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
@@ -167,18 +184,18 @@ export const useBranchActions = (
       setProjects((prev: any[]) => prev.map(p => {
           if (p.id !== activeProjectId) return p;
           const child = p.branches[childId];
-          const parent = p.branches[parentId];
-          if (!child || !parent) return p;
+          if (!child) return p;
 
-          const updatedChild = { ...child, parentIds: child.parentIds.filter(id => id !== parentId) };
-          const updatedParent = { ...parent, childrenIds: parent.childrenIds.filter(id => id !== childId) };
+          const updatedChild = { 
+              ...child, 
+              parentIds: child.parentIds.filter(id => id !== parentId),
+              updatedAt: new Date().toISOString()
+          };
           
-          const updatedBranches = { ...p.branches, [childId]: updatedChild, [parentId]: updatedParent };
+          const updatedBranches = { ...p.branches, [childId]: updatedChild };
           const newState = { ...p, branches: updatedBranches };
 
           persistenceService.saveBranch(p.id, updatedChild, isOfflineMode, supabaseClient, newState);
-          persistenceService.saveBranch(p.id, updatedParent, isOfflineMode, supabaseClient, newState);
-          
           return newState;
       }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);

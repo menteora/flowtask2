@@ -1,36 +1,33 @@
 
-# FlowTask 🌊 (RxDB Edition)
+# FlowTask 🌊 (Dynamic Tree Edition)
 
-**FlowTask** è un gestore di progetti visivo ora potenziato da **RxDB**. Grazie a questa architettura, l'app è completamente reattiva e sincronizzata in tempo reale con Supabase, funzionando perfettamente anche offline.
+**FlowTask** è un gestore di progetti visivo ora potenziato da una struttura ad albero dinamica basata su `parent_ids`.
 
-## 🚀 Novità RxDB
-*   **True Offline-First**: Le modifiche vengono salvate istantaneamente in locale e replicate in background.
-*   **Reattività Totale**: UI aggiornata automaticamente tramite Observable (RxJS).
-*   **Sincronizzazione Supabase**: Protocollo di replicazione integrato con gestione automatica dei checkpoint.
+## 🚀 Novità Strutturali
+*   **Dynamic Tree**: La gerarchia dell'albero è determinata unicamente dal campo `parent_ids`.
+*   **Root Detection**: Un ramo è considerato radice se tra i suoi genitori figura l'ID del progetto.
+*   **Simplified Schema**: Rimossi i campi ridondanti `project_id` e `children_ids` dalla tabella dei rami.
 
 ## 🗄️ Configurazione Database (Supabase)
 
 Assicurati che le tabelle abbiano la colonna `updated_at` (timestamptz) e `deleted_at` per il soft delete.
 
 ```sql
--- Esempio per la tabella rami (ripetere logica per projects, tasks, people)
+-- Tabella rami aggiornata
 create table public.flowtask_branches (
   id text primary key,
-  project_id text references public.flowtask_projects(id) on delete cascade,
   title text not null,
   description text,
   status text not null,
+  type text default 'standard',
   responsible_id text,
   start_date text,
   end_date text,
   due_date text,
   archived boolean default false,
   collapsed boolean default false,
-  is_label boolean default false,
-  is_sprint boolean default false,
   sprint_counter integer default 1,
-  parent_ids text[],
-  children_ids text[],
+  parent_ids text[], -- Contiene IDs di rami genitori o l'ID del Progetto per i rami radice
   position integer default 0,
   updated_at timestamptz default now() not null,
   deleted_at timestamptz
