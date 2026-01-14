@@ -52,6 +52,7 @@ const BranchDetails: React.FC = () => {
   const [isBulkMoveMode, setIsBulkMoveMode] = useState(false);
   const [bulkMoveTargetId, setBulkMoveTargetId] = useState('');
 
+  // Reset completo quando cambia il ramo selezionato
   useEffect(() => {
     if (branch) {
       setLocalTitle(branch.title);
@@ -71,6 +72,21 @@ const BranchDetails: React.FC = () => {
       setIsPreviewMode(false);
     }
   }, [branch?.id]); 
+
+  // Sincronizzazione "silenziosa" per cambiamenti automatici (es. completamento task che attiva il ramo)
+  useEffect(() => {
+    if (branch) {
+      // Se lo stato globale cambia in ACTIVE e noi siamo ancora su PLANNED (senza averlo toccato manualmente)
+      // allora aggiorniamo lo stato locale per evitare il "isDirty"
+      if (branch.status !== localStatus && branch.status === BranchStatus.ACTIVE) {
+        setLocalStatus(branch.status);
+      }
+      // Stessa cosa per la data di inizio
+      if (branch.startDate !== localStartDate && branch.startDate) {
+        setLocalStartDate(branch.startDate);
+      }
+    }
+  }, [branch?.status, branch?.startDate]);
 
   const isDirty = useMemo(() => {
     if (!branch) return false;
@@ -561,7 +577,7 @@ const BranchDetails: React.FC = () => {
                 <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900 rounded-xl animate-in shake duration-300">
                     <p className="text-[11px] text-red-700 dark:text-red-400 font-bold text-center mb-3">Eliminare definitivamente?</p>
                     <div className="flex gap-2">
-                        <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-2 text-xs font-bold bg-white dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-200 border dark:border-slate-600">Annulla</button>
+                        <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-2 text-xs font-bold bg-white dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 border dark:border-slate-600">Annulla</button>
                         <button onClick={() => { deleteBranch(branch.id); selectBranch(null); }} className="flex-1 py-2 text-xs font-bold bg-red-600 text-white rounded-lg">Sì, Elimina</button>
                     </div>
                 </div>

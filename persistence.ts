@@ -29,7 +29,6 @@ export const persistenceService = {
     } else if (client) {
       await supabaseService.upsertEntity(client, 'flowtask_branches', {
         id: branch.id,
-        project_id: projectId,
         title: branch.title,
         description: branch.description,
         status: branch.status,

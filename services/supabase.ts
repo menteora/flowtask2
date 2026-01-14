@@ -7,8 +7,9 @@ export const supabaseService = {
     return client.from('flowtask_projects').select('*').is('deleted_at', null);
   },
 
-  async fetchBranches(client: SupabaseClient, projectId: string) {
-    return client.from('flowtask_branches').select('*').eq('project_id', projectId).is('deleted_at', null).order('position', { ascending: true });
+  async fetchBranches(client: SupabaseClient) {
+    // We fetch all branches the user owns (via project root filtering later)
+    return client.from('flowtask_branches').select('*').is('deleted_at', null).order('position', { ascending: true });
   },
 
   async softDeleteProject(client: SupabaseClient, id: string) {
@@ -69,12 +70,39 @@ export const supabaseService = {
     const { data: p, error: pErr } = await client.from('flowtask_projects').select('*').eq('id', id).is('deleted_at', null).single();
     if (pErr) throw pErr;
 
+    // To find all branches of a project, we fetch all branches and filter locally based on the parentIds path
+    // For large databases, we'd use a postgres array contains query: parent_ids ? ANY
+    // But since project_id is removed, we rely on parent_ids containing the project_id somewhere.
+    // However, the rule is roots have parent_ids = [projectId].
+    
+    // For now, let's fetch all branches. 
+    // Optimization: In a real app, we'd filter branches where 'parent_ids' includes the project ID for roots,
+    // and then recursively find descendants. Since we are refactoring, we'll fetch all.
     const [peopleRes, branchesRes] = await Promise.all([
       client.from('flowtask_people').select('*').eq('project_id', id).is('deleted_at', null),
-      client.from('flowtask_branches').select('*').eq('project_id', id).is('deleted_at', null).order('position', { ascending: true })
+      client.from('flowtask_branches').select('*').is('deleted_at', null).order('position', { ascending: true })
     ]);
 
-    const branchIds = branchesRes.data?.map(b => b.id) || [];
+    // Filter branches that belong to this project tree
+    const allBranches = branchesRes.data || [];
+    const projectBranchesList: any[] = [];
+    const branchIdsInProject = new Set<string>();
+
+    const findBranchesRecursive = (parentId: string) => {
+        const children = allBranches.filter(b => b.parent_ids?.includes(parentId));
+        children.forEach(c => {
+            if (!branchIdsInProject.has(c.id)) {
+                branchIdsInProject.add(c.id);
+                projectBranchesList.push(c);
+                findBranchesRecursive(c.id);
+            }
+        });
+    };
+
+    // Start from root project ID
+    findBranchesRecursive(id);
+
+    const branchIds = projectBranchesList.map(b => b.id);
     let tasksRes: any[] = [];
     if (branchIds.length > 0) {
         const { data } = await client.from('flowtask_tasks')
@@ -91,7 +119,7 @@ export const supabaseService = {
     }));
 
     const branches: Record<string, Branch> = {};
-    (branchesRes.data || []).forEach(b => {
+    projectBranchesList.forEach(b => {
       const bTasks = tasksRes
         .filter(t => t.branch_id === b.id)
         .map(t => ({
@@ -103,8 +131,8 @@ export const supabaseService = {
       branches[b.id] = {
         id: b.id, title: b.title, description: b.description, status: b.status as BranchStatus,
         color: b.color,
-        type: (b.type || (b.is_sprint ? 'sprint' : (b.is_label ? 'label' : 'standard'))) as BranchType,
-        tasks: bTasks, childrenIds: b.children_ids || [], parentIds: b.parent_ids || [],
+        type: (b.type || 'standard') as BranchType,
+        tasks: bTasks, parentIds: b.parent_ids || [],
         startDate: b.start_date, endDate: b.end_date, dueDate: b.due_date,
         archived: b.archived, collapsed: b.collapsed,
         sprintCounter: b.sprint_counter || 1,
@@ -126,11 +154,11 @@ export const supabaseService = {
 
     for (const b of Object.values(project.branches)) {
       await this.upsertEntity(client, 'flowtask_branches', {
-          id: b.id, project_id: project.id, title: b.title, description: b.description, status: b.status, color: b.color,
+          id: b.id, title: b.title, description: b.description, status: b.status, color: b.color,
           type: b.type,
           start_date: b.startDate, end_date: b.endDate, due_date: b.dueDate, archived: b.archived,
           collapsed: b.collapsed, sprint_counter: b.sprintCounter || 1, 
-          parent_ids: b.parentIds, children_ids: b.childrenIds,
+          parent_ids: b.parentIds,
           responsible_id: b.responsibleId, position: b.position || 0, version: b.version
       });
 

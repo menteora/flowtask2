@@ -63,7 +63,6 @@ const LOADING_PROJECT: ProjectState = {
             status: BranchStatus.PLANNED,
             type: 'standard',
             tasks: [],
-            childrenIds: [],
             parentIds: ['loading'], // Root points to loading project
             version: 1
         }

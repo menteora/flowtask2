@@ -92,9 +92,9 @@ CREATE TABLE IF NOT EXISTS public.flowtask_projects (
 
 -- 3. Tabella Rami (Branches)
 -- Nota: I rami radice hanno l'id del progetto nel campo parent_ids
+-- project_id e children_ids sono stati rimossi per affidarsi unicamente a parent_ids
 CREATE TABLE IF NOT EXISTS public.flowtask_branches (
     id TEXT PRIMARY KEY,
-    project_id TEXT REFERENCES public.flowtask_projects(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     description TEXT,
     status TEXT DEFAULT 'PLANNED',
@@ -108,7 +108,6 @@ CREATE TABLE IF NOT EXISTS public.flowtask_branches (
     collapsed BOOLEAN DEFAULT FALSE,
     sprint_counter INTEGER DEFAULT 1,
     parent_ids TEXT[] DEFAULT '{}',
-    children_ids TEXT[] DEFAULT '{}',
     position INTEGER DEFAULT 0,
     version INTEGER DEFAULT 1,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -135,7 +134,7 @@ CREATE TABLE IF NOT EXISTS public.flowtask_tasks (
 -- 5. Tabella Persone (Team)
 CREATE TABLE IF NOT EXISTS public.flowtask_people (
     id TEXT PRIMARY KEY,
-    project_id TEXT REFERENCES public.flowtask_people(id) ON DELETE CASCADE,
+    project_id TEXT REFERENCES public.flowtask_projects(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     email TEXT,
     phone TEXT,
