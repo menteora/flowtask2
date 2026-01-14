@@ -53,11 +53,12 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
         return state.people.find(p => p.id === b.responsibleId);
     }
     
-    if (b.parentIds && b.parentIds.length > 0) {
+    // Check if the parent is a project (root branch)
+    if (b.parentIds && b.parentIds.length > 0 && b.parentIds[0] !== state.id) {
         return getInheritedResponsible(b.parentIds[0]);
     }
     return undefined;
-  }, [state.branches, state.people]);
+  }, [state.branches, state.people, state.id]);
 
   if (!branch) return null;
 
@@ -67,7 +68,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   const currentResp = branch.responsibleId ? state.people.find(p => p.id === branch.responsibleId) : undefined;
-  const inheritedResp = !branch.responsibleId && branch.parentIds.length > 0 
+  const inheritedResp = !branch.responsibleId && branch.parentIds.length > 0 && branch.parentIds[0] !== state.id
     ? getInheritedResponsible(branch.parentIds[0]) 
     : undefined;
 
@@ -77,8 +78,9 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
   const hasChildren = branch.childrenIds.length > 0;
   const isMultiParent = branch.parentIds.length > 1;
 
+  const isRootBranch = branch.parentIds.includes(state.id);
   const parentId = branch.parentIds[0];
-  const parent = parentId ? state.branches[parentId] : null;
+  const parent = parentId && !isRootBranch ? state.branches[parentId] : null;
   const siblingIndex = parent ? parent.childrenIds.indexOf(branchId) : -1;
   const canMoveLeft = siblingIndex > 0;
   const canMoveRight = parent ? siblingIndex < parent.childrenIds.length - 1 : false;
@@ -86,14 +88,13 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
   const visibleTasks = isTasksExpanded ? sortedTasks : sortedTasks.slice(0, 3);
   const hiddenTasksCount = sortedTasks.length > 3 ? sortedTasks.length - 3 : 0;
 
-  // Visual Customization
   const customColor = PASTEL_COLORS.find(c => c.id === branch.color);
   const nodeBg = customColor ? customColor.bg : 'bg-white dark:bg-slate-800';
   const nodeBorder = isSelected 
     ? 'border-indigo-500 ring-2 ring-indigo-500/20' 
     : (customColor ? customColor.border : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500');
 
-  const BranchMoveControls = () => branchId === state.rootBranchId ? null : (
+  const BranchMoveControls = () => isRootBranch ? null : (
     <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover/node:opacity-100 transition-opacity bg-white dark:bg-slate-800 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl z-30">
         <button 
             onClick={(e) => { e.stopPropagation(); moveBranch(branchId, 'prev'); }}
@@ -142,7 +143,6 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
     );
   };
 
-  // --- SPECIAL TYPES RENDERING (Label, Sprint, Objective) ---
   if (branch.type === 'label' || branch.type === 'sprint' || branch.type === 'objective') {
       const isSprint = branch.type === 'sprint';
       const isObjective = branch.type === 'objective';
