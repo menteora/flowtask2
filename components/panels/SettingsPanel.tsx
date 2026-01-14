@@ -52,15 +52,11 @@ const SettingsPanel: React.FC = () => {
       } finally { setIsLoadingList(false); }
   };
 
-  /**
-   * Handles project upload to Supabase cloud.
-   */
   const handleUpload = async () => {
     setIsUploading(true);
     try {
       await uploadProjectToSupabase();
       showNotification("Progetto caricato sul cloud con successo.", 'success');
-      // Refresh list after successful upload
       handleListProjects();
     } catch (err) {
       showNotification("Errore durante il caricamento del progetto.", 'error');
@@ -69,9 +65,10 @@ const SettingsPanel: React.FC = () => {
     }
   };
 
-  const fullSqlSetup = `-- CONFIGURAZIONE DATABASE FLOWTASK REFEACTORED
+  const fullSqlSetup = `-- CONFIGURAZIONE DATABASE FLOWTASK (FRESH START - DYNAMIC TREE)
+-- Copia e incolla questo script nell'editor SQL di Supabase.
 
--- 1. Funzione aggiornamento automatico timestamp
+-- 1. Funzione per aggiornamento automatico dei timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -81,7 +78,7 @@ END;
 $$ language 'plpgsql';
 
 -- 2. Tabella Progetti
-CREATE TABLE IF NOT EXISTS public.flowtask_projects (
+CREATE TABLE public.flowtask_projects (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     owner_id UUID REFERENCES auth.users(id),
@@ -91,9 +88,8 @@ CREATE TABLE IF NOT EXISTS public.flowtask_projects (
 );
 
 -- 3. Tabella Rami (Branches)
--- Nota: I rami radice hanno l'id del progetto nel campo parent_ids
--- project_id e children_ids sono stati rimossi per affidarsi unicamente a parent_ids
-CREATE TABLE IF NOT EXISTS public.flowtask_branches (
+-- Nota: La gerarchia è gestita tramite l'array parent_ids
+CREATE TABLE public.flowtask_branches (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
@@ -115,7 +111,7 @@ CREATE TABLE IF NOT EXISTS public.flowtask_branches (
 );
 
 -- 4. Tabella Task
-CREATE TABLE IF NOT EXISTS public.flowtask_tasks (
+CREATE TABLE public.flowtask_tasks (
     id TEXT PRIMARY KEY,
     branch_id TEXT REFERENCES public.flowtask_branches(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
@@ -131,8 +127,8 @@ CREATE TABLE IF NOT EXISTS public.flowtask_tasks (
     deleted_at TIMESTAMPTZ
 );
 
--- 5. Tabella Persone (Team)
-CREATE TABLE IF NOT EXISTS public.flowtask_people (
+-- 5. Tabella Team (People)
+CREATE TABLE public.flowtask_people (
     id TEXT PRIMARY KEY,
     project_id TEXT REFERENCES public.flowtask_projects(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -145,11 +141,28 @@ CREATE TABLE IF NOT EXISTS public.flowtask_people (
     deleted_at TIMESTAMPTZ
 );
 
--- 6. Trigger
+-- 6. Trigger per gestione automatica updated_at
 CREATE TRIGGER tr_updated_at_projects BEFORE UPDATE ON flowtask_projects FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER tr_updated_at_branches BEFORE UPDATE ON flowtask_branches FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER tr_updated_at_tasks BEFORE UPDATE ON flowtask_tasks FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-CREATE TRIGGER tr_updated_at_people BEFORE UPDATE ON flowtask_people FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();`;
+CREATE TRIGGER tr_updated_at_people BEFORE UPDATE ON flowtask_people FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- 7. Sicurezza (Row Level Security)
+ALTER TABLE public.flowtask_projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flowtask_branches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flowtask_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flowtask_people ENABLE ROW LEVEL SECURITY;
+
+-- 8. Policy d'accesso (Utenti Autenticati)
+CREATE POLICY "Enable all for authenticated users" ON public.flowtask_projects FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Enable all for authenticated users" ON public.flowtask_branches FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Enable all for authenticated users" ON public.flowtask_tasks FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Enable all for authenticated users" ON public.flowtask_people FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- 9. Indici per prestazioni ottimali
+CREATE INDEX idx_flowtask_branches_parent_ids ON public.flowtask_branches USING GIN (parent_ids);
+CREATE INDEX idx_flowtask_tasks_branch_id ON public.flowtask_tasks (branch_id);
+CREATE INDEX idx_flowtask_people_project_id ON public.flowtask_people (project_id);`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(fullSqlSetup);
@@ -283,7 +296,7 @@ CREATE TRIGGER tr_updated_at_people BEFORE UPDATE ON flowtask_people FOR EACH RO
                           </button>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                          Copia lo script qui sotto e incollalo nell'editor SQL di Supabase per configurare le tabelle necessarie alla persistenza cloud.
+                          Copia lo script qui sotto e incollalo nell'editor SQL di Supabase per configurare le tabelle necessarie alla persistenza cloud partendo da una configurazione pulita.
                       </p>
                       <pre className="w-full p-4 bg-slate-900 text-emerald-400 font-mono text-[10px] rounded-xl overflow-x-auto custom-scrollbar max-h-[400px]">
                           {fullSqlSetup}

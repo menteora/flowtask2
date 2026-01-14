@@ -581,7 +581,8 @@ const BranchDetails: React.FC = () => {
                         <button onClick={() => { deleteBranch(branch.id); selectBranch(null); }} className="flex-1 py-2 text-xs font-bold bg-red-600 text-white rounded-lg">Sì, Elimina</button>
                     </div>
                 </div>
-            ) : branch.id !== state.rootBranchId && (
+            /* Identifichiamo il ramo radice tramite parentIds che include l'ID progetto */
+            ) : !branch.parentIds.includes(state.id) && (
                 <button onClick={() => setShowDeleteConfirm(true)} className="w-full py-3 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors uppercase tracking-widest">Elimina Ramo</button>
             )}
         </div>
