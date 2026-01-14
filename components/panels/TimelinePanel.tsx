@@ -107,7 +107,8 @@ const TimelinePanel: React.FC = () => {
 
     sourceProjects.forEach(proj => {
         const projBranches = (Object.values(proj.branches) as Branch[]).filter(b => {
-            if (b.id === proj.rootBranchId) return false;
+            /* Identifichiamo i rami radice verificando se parentIds include l'ID progetto */
+            if (b.parentIds.includes(proj.id)) return false;
             if (b.archived && !showArchived) return false;
             return true;
         });
