@@ -1,4 +1,5 @@
 
+
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ProjectState, Branch, Task, Person, BranchStatus, BranchType } from '../types';
 
@@ -34,6 +35,11 @@ export const supabaseService = {
   async upsertEntity(client: SupabaseClient, table: string, payload: any) {
     const { version, id, updatedAt, deletedAt, isDirty, ...rest } = payload;
     
+    // Filtriamo i campi undefined per evitare errori PostgREST 400
+    const cleanRest = Object.fromEntries(
+        Object.entries(rest).filter(([_, v]) => v !== undefined)
+    );
+
     if (payload.deleted_at) {
         return client.from(table).update({ 
             deleted_at: payload.deleted_at, 
@@ -47,7 +53,7 @@ export const supabaseService = {
       const { data, error } = await client
         .from(table)
         .update({ 
-            ...rest, 
+            ...cleanRest, 
             version: version 
         })
         .eq('id', id)
@@ -63,7 +69,7 @@ export const supabaseService = {
       return { data };
     }
 
-    return client.from(table).upsert({ ...rest, id, version: version || 1 });
+    return client.from(table).upsert({ ...cleanRest, id, version: version || 1 });
   },
 
   async downloadFullProject(client: SupabaseClient, id: string): Promise<ProjectState> {
@@ -163,6 +169,7 @@ export const supabaseService = {
       });
 
       for (const t of b.tasks) {
+        // Fix: Use correct property names from Task type (assigneeId and completedAt)
         await this.upsertEntity(client, 'flowtask_tasks', {
           id: t.id, branch_id: b.id, title: t.title, description: t.description, assignee_id: t.assigneeId,
           due_date: t.dueDate, completed: t.completed, completed_at: t.completedAt, position: t.position || 0, pinned: t.pinned || false, version: t.version
