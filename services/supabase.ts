@@ -1,5 +1,4 @@
 
-
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ProjectState, Branch, Task, Person, BranchStatus, BranchType } from '../types';
 

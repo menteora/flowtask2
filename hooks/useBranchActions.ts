@@ -123,8 +123,8 @@ export const useBranchActions = (
         const newPos = targetBranch.position;
         const oldPos = branch.position;
 
-        const updatedBranch = { ...branch, position: newPos, updatedAt: new Date().toISOString() };
-        const updatedTarget = { ...targetBranch, position: oldPos, updatedAt: new Date().toISOString() };
+        const updatedBranch = { ...branch, position: newPos, version: (branch.version || 1) + 1, updatedAt: new Date().toISOString() };
+        const updatedTarget = { ...targetBranch, position: oldPos, version: (targetBranch.version || 1) + 1, updatedAt: new Date().toISOString() };
         
         const updatedBranches = { ...p.branches, [branch.id]: updatedBranch, [targetBranch.id]: updatedTarget };
         const newState = { ...p, branches: updatedBranches };
@@ -153,7 +153,8 @@ export const useBranchActions = (
           if (p.id !== activeProjectId) return p;
           const b = p.branches[branchId];
           if (!b) return p;
-          const updated = { ...b, archived: !b.archived, updatedAt: new Date().toISOString() };
+          // Incrementa la versione per triggerare l'UPDATE invece dell'UPSERT nel persistence engine
+          const updated = { ...b, archived: !b.archived, version: (b.version || 1) + 1, updatedAt: new Date().toISOString() };
           const newState = { ...p, branches: { ...p.branches, [branchId]: updated } };
           persistenceService.saveBranch(p.id, updated, isOfflineMode, supabaseClient, newState);
           return newState;
@@ -169,6 +170,7 @@ export const useBranchActions = (
           const updatedChild = { 
               ...child, 
               parentIds: Array.from(new Set([...child.parentIds, parentId])),
+              version: (child.version || 1) + 1,
               updatedAt: new Date().toISOString()
           };
           
@@ -189,6 +191,7 @@ export const useBranchActions = (
           const updatedChild = { 
               ...child, 
               parentIds: child.parentIds.filter(id => id !== parentId),
+              version: (child.version || 1) + 1,
               updatedAt: new Date().toISOString()
           };
           
