@@ -218,7 +218,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           });
           showNotification("Progetto eliminato.", "success");
       }
-  }, [isOfflineMode, supabaseClient, activeProjectId, showNotification, session]);
+  }, [isOfflineMode, supabaseClient, activeProjectId, showNotification]);
 
   const renameProject = useCallback(async (name: string) => {
       setProjects(prev => prev.map(p => {
@@ -318,6 +318,19 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [supabaseClient]);
 
+  /**
+   * Trova ricorsivamente tutti gli ID dei rami discendenti.
+   */
+  const findDescendantIds = (branchId: string, branches: Record<string, Branch>): string[] => {
+    const descendants: string[] = [];
+    const children = Object.values(branches).filter(b => b.parentIds?.includes(branchId));
+    children.forEach(c => {
+        descendants.push(c.id);
+        descendants.push(...findDescendantIds(c.id, branches));
+    });
+    return descendants;
+  };
+
   const moveLocalBranchToRemoteProject = useCallback(async (branchId: string, targetProjectId: string, targetParentId: string): Promise<void> => {
     if (!supabaseClient || isOfflineMode) return;
     
@@ -332,10 +345,19 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
             updatedAt: new Date().toISOString()
         };
 
-        // Salva il ramo nel nuovo progetto (in Supabase i rami sono globali e puntano a genitori)
-        // La nostra struttura Dynamic Tree usa parentIds per determinare l'appartenenza.
+        // Salva il ramo nel nuovo progetto (in Supabase i rami sono globali e puntano a genitori tramite parent_ids)
         await persistenceService.saveBranch(targetProjectId, updatedBranch, false, supabaseClient, activeProject);
         
+        // Rimuove il ramo e tutti i suoi discendenti dallo stato locale del progetto sorgente
+        // senza inviare un'istruzione di cancellazione al database (evita soft-delete)
+        setProjects(prev => prev.map(p => {
+          if (p.id !== activeProject.id) return p;
+          const newBranches = { ...p.branches };
+          const idsToRemove = [branchId, ...findDescendantIds(branchId, p.branches)];
+          idsToRemove.forEach(id => delete newBranches[id]);
+          return { ...p, branches: newBranches };
+        }));
+
         showNotification("Ramo migrato correttamente.", "success");
     } catch (err) {
         showNotification("Errore durante la migrazione del ramo.", "error");
