@@ -46,10 +46,10 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
   }, [branch?.tasks, showOnlyOpen]);
 
   // Compute children dynamically
-  // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error
   const children = useMemo(() => {
+      if (!branch) return [];
       return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(branchId));
-  }, [state.branches, branchId]);
+  }, [state.branches, branchId, branch]);
 
   const getInheritedResponsible = useCallback((bid: string): Person | undefined => {
     const b = state.branches[bid];
@@ -66,6 +66,17 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
     return undefined;
   }, [state.branches, state.people, state.id]);
 
+  const isRootBranch = branch?.parentIds.includes(state.id) || false;
+  const parentId = branch?.parentIds[0];
+
+  const siblings = useMemo(() => {
+      if (!branch) return [];
+      if (isRootBranch) return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(state.id)).sort((a, b) => (a.position || 0) - (b.position || 0));
+      if (!parentId) return [];
+      return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(parentId)).sort((a, b) => (a.position || 0) - (b.position || 0));
+  }, [state.branches, parentId, isRootBranch, state.id, branch]);
+
+  // EARLY RETURN AFTER ALL HOOKS
   if (!branch) return null;
 
   const isSelected = selectedBranchId === branchId;
@@ -82,17 +93,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
 
   const hasDescription = branch.description && branch.description.trim().length > 0;
   const hasChildren = children.length > 0;
-  const isMultiParent = branch.parentIds.length > 1;
-
-  const isRootBranch = branch.parentIds.includes(state.id);
-  const parentId = branch.parentIds[0];
-  // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error and access properties correctly
-  const siblings = useMemo(() => {
-      if (isRootBranch) return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(state.id)).sort((a, b) => (a.position || 0) - (b.position || 0));
-      if (!parentId) return [];
-      return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(parentId)).sort((a, b) => (a.position || 0) - (b.position || 0));
-  }, [state.branches, parentId, isRootBranch, state.id]);
-
+  
   const siblingIndex = siblings.findIndex(b => b.id === branchId);
   const canMoveLeft = siblingIndex > 0;
   const canMoveRight = siblingIndex < siblings.length - 1;
@@ -262,7 +263,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                   {statusConfig.label}
                 </span>
                 
-                {isMultiParent && (
+                {branch.parentIds.length > 1 && (
                     <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800" title={`Multi-Link`}>
                         <GitMerge className="w-3 h-3" />
                     </span>

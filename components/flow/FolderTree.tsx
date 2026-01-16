@@ -24,21 +24,14 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const branch = state.branches[branchId];
   
-  if (!branch) return null;
-  
   // Compute children dynamically
-  // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error
   const children = useMemo(() => {
+      if (!branch) return [];
       return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(branchId));
-  }, [state.branches, branchId]);
-
-  const isSelfVisible = !branch.archived || showArchived;
-  const hasActiveChildren = children.some(c => !c.archived);
-
-  const shouldRender = isSelfVisible || hasActiveChildren;
-  if (!shouldRender) return null;
+  }, [state.branches, branchId, branch]);
 
   const sortedTasks = useMemo(() => {
+    if (!branch) return [];
     let list = [...branch.tasks];
     if (showOnlyOpen) {
         list = list.filter(t => !t.completed);
@@ -49,7 +42,16 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
         }
         return a.completed ? 1 : -1;
     });
-  }, [branch.tasks, showOnlyOpen]);
+  }, [branch?.tasks, showOnlyOpen]);
+
+  // EARLY RETURN AFTER ALL HOOKS
+  if (!branch) return null;
+  
+  const isSelfVisible = !branch.archived || showArchived;
+  const hasActiveChildren = children.some(c => !c.archived);
+
+  const shouldRender = isSelfVisible || hasActiveChildren;
+  if (!shouldRender) return null;
 
   const visibleChildren = children.sort((a, b) => (a.position || 0) - (b.position || 0));
   const hasChildren = visibleChildren.length > 0;
