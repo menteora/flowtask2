@@ -45,7 +45,6 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
     });
   }, [branch?.tasks, showOnlyOpen]);
 
-  // Compute children dynamically
   const children = useMemo(() => {
       if (!branch) return [];
       return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(branchId));
@@ -59,7 +58,6 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
         return state.people.find(p => p.id === b.responsibleId);
     }
     
-    // Check if the parent is a project (root branch)
     if (b.parentIds && b.parentIds.length > 0 && b.parentIds[0] !== state.id) {
         return getInheritedResponsible(b.parentIds[0]);
     }
@@ -76,7 +74,6 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
       return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(parentId)).sort((a, b) => (a.position || 0) - (b.position || 0));
   }, [state.branches, parentId, isRootBranch, state.id, branch]);
 
-  // EARLY RETURN AFTER ALL HOOKS
   if (!branch) return null;
 
   const isSelected = selectedBranchId === branchId;

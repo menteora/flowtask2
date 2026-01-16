@@ -24,7 +24,6 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const branch = state.branches[branchId];
   
-  // Compute children dynamically
   const children = useMemo(() => {
       if (!branch) return [];
       return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(branchId));
@@ -44,7 +43,6 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
     });
   }, [branch?.tasks, showOnlyOpen]);
 
-  // EARLY RETURN AFTER ALL HOOKS
   if (!branch) return null;
   
   const isSelfVisible = !branch.archived || showArchived;
@@ -204,7 +202,6 @@ const FolderTree: React.FC = () => {
     const { setAllBranchesCollapsed } = useBranch();
     const branchesCount = Object.keys(state.branches).length - 1;
     
-    // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error and access properties correctly
     const rootBranches = useMemo(() => {
         return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(state.id)).sort((a, b) => (a.position || 0) - (b.position || 0));
     }, [state.branches, state.id]);
