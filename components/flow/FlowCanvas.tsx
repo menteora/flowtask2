@@ -16,7 +16,6 @@ const isSubtreeVisible = (branchId: string, branches: Record<string, Branch>, sh
     if (showArchived) return true;
     if (!branch.archived) return true;
     
-    // Check if any children are visible
     const children = Object.values(branches).filter(b => b.parentIds?.includes(branchId));
     return children.some(c => isSubtreeVisible(c.id, branches, showArchived));
 };
@@ -52,9 +51,7 @@ const TreeLevel: React.FC<TreeLevelProps> = ({ branchId }) => {
       .map(c => c.id);
   }, [children, state.branches, showArchived]);
 
-  // EARLY RETURN AFTER ALL HOOKS
-  if (!branch) return null;
-  if (!visibleSubtree) return null;
+  if (!branch || !visibleSubtree) return null;
 
   const isNodeVisibleInCurrentView = !branch.archived || showArchived;
   const hasVisibleChildren = visibleChildrenIds.length > 0;

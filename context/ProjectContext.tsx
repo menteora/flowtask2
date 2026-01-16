@@ -45,6 +45,8 @@ interface ProjectContextType {
   listProjectsFromSupabase: () => Promise<any[]>;
   downloadProjectFromSupabase: (id: string) => Promise<void>;
   deleteProjectFromSupabase: (id: string) => Promise<void>;
+  getProjectBranchesFromSupabase: (projectId: string) => Promise<Branch[]>;
+  moveLocalBranchToRemoteProject: (branchId: string, targetProjectId: string, targetParentId: string) => Promise<void>;
   exportAllToJSON: () => void;
   exportActiveProjectToJSON: () => void;
 }
@@ -63,7 +65,7 @@ const LOADING_PROJECT: ProjectState = {
             status: BranchStatus.PLANNED,
             type: 'standard',
             tasks: [],
-            parentIds: ['loading'], // Root points to loading project
+            parentIds: ['loading'], 
             version: 1
         }
     }
@@ -305,6 +307,42 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [activeProject]);
 
+  const getProjectBranchesFromSupabase = useCallback(async (projectId: string): Promise<Branch[]> => {
+    if (!supabaseClient) return [];
+    try {
+        const fullProject = await supabaseService.downloadFullProject(supabaseClient, projectId);
+        return Object.values(fullProject.branches);
+    } catch (err) {
+        console.error("Error fetching branches from supabase:", err);
+        return [];
+    }
+  }, [supabaseClient]);
+
+  const moveLocalBranchToRemoteProject = useCallback(async (branchId: string, targetProjectId: string, targetParentId: string): Promise<void> => {
+    if (!supabaseClient || isOfflineMode) return;
+    
+    const branchToMove = activeProject.branches[branchId];
+    if (!branchToMove) throw new Error("Branch not found in current project");
+
+    try {
+        const updatedBranch = {
+            ...branchToMove,
+            parentIds: [targetParentId],
+            version: (branchToMove.version || 1) + 1,
+            updatedAt: new Date().toISOString()
+        };
+
+        // Salva il ramo nel nuovo progetto (in Supabase i rami sono globali e puntano a genitori)
+        // La nostra struttura Dynamic Tree usa parentIds per determinare l'appartenenza.
+        await persistenceService.saveBranch(targetProjectId, updatedBranch, false, supabaseClient, activeProject);
+        
+        showNotification("Ramo migrato correttamente.", "success");
+    } catch (err) {
+        showNotification("Errore durante la migrazione del ramo.", "error");
+        throw err;
+    }
+  }, [activeProject, supabaseClient, isOfflineMode, showNotification]);
+
   return (
     <ProjectContext.Provider value={{
       state: activeProject, projects, activeProjectId, setActiveProjectId, session, userProfile,
@@ -312,6 +350,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setProjects, switchProject, createProject, deleteProject, renameProject, setSupabaseConfig, logout,
       enableOfflineMode, disableOfflineMode, showNotification,
       reorderProject, closeProject, loadProject,
+      getProjectBranchesFromSupabase,
+      moveLocalBranchToRemoteProject,
       exportAllToJSON,
       exportActiveProjectToJSON,
       uploadProjectToSupabase: async () => {
