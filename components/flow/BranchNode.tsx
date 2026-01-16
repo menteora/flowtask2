@@ -82,6 +82,9 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   const currentResp = branch.responsibleId ? state.people.find(p => p.id === branch.responsibleId) : undefined;
+  // Se l'ID esiste ma non troviamo la persona, è un caso di orfano
+  const isResponsibleOrphan = branch.responsibleId ? !currentResp : false;
+
   const inheritedResp = !branch.responsibleId && branch.parentIds.length > 0 && branch.parentIds[0] !== state.id
     ? getInheritedResponsible(branch.parentIds[0]) 
     : undefined;
@@ -186,9 +189,9 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                             {branch.title}
                         </span>
                     </div>
-                    {effectiveBranchResp && (
-                        <div className={`shrink-0 ${!currentResp ? 'opacity-40 grayscale' : ''}`} title={!currentResp ? `Ereditato: ${effectiveBranchResp.name}` : undefined}>
-                            <Avatar person={effectiveBranchResp} size="sm" className="w-5 h-5 text-[7px]" />
+                    {(effectiveBranchResp || isResponsibleOrphan) && (
+                        <div className={`shrink-0 ${!currentResp && !isResponsibleOrphan ? 'opacity-40 grayscale' : ''}`} title={isResponsibleOrphan ? 'Responsabile non trovato' : !currentResp ? `Ereditato: ${effectiveBranchResp?.name}` : undefined}>
+                            <Avatar person={effectiveBranchResp} isUnknown={isResponsibleOrphan} size="sm" className="w-5 h-5 text-[7px]" />
                         </div>
                     )}
                 </div>
@@ -230,7 +233,9 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
       );
   }
 
-  const statusConfig = STATUS_CONFIG[branch.status];
+  // Fallback robusto per STATUS_CONFIG per evitare errori "reading 'color' of undefined"
+  const statusKey = branch.status || BranchStatus.PLANNED;
+  const statusConfig = STATUS_CONFIG[statusKey] || STATUS_CONFIG[BranchStatus.PLANNED];
 
   return (
     <div className="flex flex-col items-center group/node relative">
@@ -269,9 +274,9 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-             {effectiveBranchResp && (
-                 <div className={!currentResp ? 'opacity-40 grayscale' : ''} title={currentResp ? `Responsabile: ${currentResp.name}` : `Responsabile Ereditato: ${effectiveBranchResp.name}`}>
-                    <Avatar person={effectiveBranchResp} size="sm" className="w-6 h-6 text-[8px]" />
+             {(effectiveBranchResp || isResponsibleOrphan) && (
+                 <div className={!currentResp && !isResponsibleOrphan ? 'opacity-40 grayscale' : ''} title={isResponsibleOrphan ? 'Responsabile non trovato' : currentResp ? `Responsabile: ${currentResp.name}` : `Responsabile Ereditato: ${effectiveBranchResp?.name}`}>
+                    <Avatar person={effectiveBranchResp} isUnknown={isResponsibleOrphan} size="sm" className="w-6 h-6 text-[8px]" />
                  </div>
              )}
              {hasDescription && (
@@ -296,7 +301,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                 </div>
                 <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                     <div 
-                        className={`h-full transition-all duration-500 ${branch.archived ? 'bg-slate-400' : 'bg-indigo-50'}`}
+                        className={`h-full transition-all duration-500 ${branch.archived ? 'bg-slate-400' : 'bg-indigo-500'}`}
                         style={{ width: `${progress}%` }}
                     />
                 </div>
@@ -304,6 +309,8 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                 <ul className="mt-2 space-y-1.5">
                     {visibleTasks.map((task, taskIdx) => {
                         const directAssignee = task.assigneeId ? state.people.find(p => p.id === task.assigneeId) : null;
+                        const isTaskOrphan = task.assigneeId ? !directAssignee : false;
+                        
                         const inheritedAssignee = !directAssignee ? effectiveBranchResp : null;
                         const displayAssignee = directAssignee || inheritedAssignee;
 
@@ -353,14 +360,15 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                                             <span>{new Date(task.dueDate).getDate()}/{new Date(task.dueDate).getMonth() + 1}</span>
                                         </div>
                                     ) : null}
-                                    {displayAssignee && (
+                                    {(displayAssignee || isTaskOrphan) && (
                                         <div className="relative">
                                             <Avatar 
                                                 person={displayAssignee} 
+                                                isUnknown={isTaskOrphan}
                                                 size="sm" 
-                                                className={`w-4 h-4 text-[7px] ${!directAssignee ? 'opacity-40 grayscale border border-dashed border-slate-400' : ''}`} 
+                                                className={`w-4 h-4 text-[7px] ${!directAssignee && !isTaskOrphan ? 'opacity-40 grayscale border border-dashed border-slate-400' : ''}`} 
                                             />
-                                            {!directAssignee && (
+                                            {!directAssignee && !isTaskOrphan && (
                                                 <CornerDownRight className="absolute -top-1 -left-1 w-2 h-2 text-indigo-500 bg-white dark:bg-slate-800 rounded-full" />
                                             )}
                                         </div>

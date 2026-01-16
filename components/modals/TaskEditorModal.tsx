@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useTask } from '../../context/TaskContext';
-import { X, Calendar, User, Trash2, CheckSquare, Square, Save, ArrowRight, Bold, Italic, List, Link as LinkIcon, Mail, Check, Eye, Edit2, Pin, CalendarDays, CheckCircle2, CornerDownRight } from 'lucide-react';
+import { X, Calendar, User, Trash2, CheckSquare, Square, Save, ArrowRight, Bold, Italic, List, Link as LinkIcon, Mail, Check, Eye, Edit2, Pin, CalendarDays, CheckCircle2, CornerDownRight, UserX } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import { Branch, Person } from '../../types';
 import DatePicker from '../ui/DatePicker';
@@ -144,11 +144,6 @@ const TaskEditorModal: React.FC = () => {
       handleClose();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') handleSave();
-      if (e.key === 'Escape') handleClose();
-  };
-
   const insertFormat = (prefix: string, suffix: string, selectionOverride?: string) => {
     if (!textareaRef.current) return;
     const start = textareaRef.current.selectionStart;
@@ -210,6 +205,9 @@ const TaskEditorModal: React.FC = () => {
       setPopupMode(null);
       setPopupInput('');
   };
+
+  const currentAssignee = assigneeId ? state.people.find(p => p.id === assigneeId) : null;
+  const isAssigneeOrphan = assigneeId && !currentAssignee;
 
   return (
     <div 
@@ -368,6 +366,16 @@ const TaskEditorModal: React.FC = () => {
                             )}
                         </div>
                     </button>
+                    {isAssigneeOrphan && (
+                        <button
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 font-bold"
+                            onClick={() => setAssigneeId('')}
+                            title="L'utente assegnato è stato eliminato"
+                        >
+                            <UserX className="w-4 h-4" />
+                            <span className="truncate italic">Utente Eliminato</span>
+                        </button>
+                    )}
                     {state.people.map(person => (
                         <button
                             key={person.id}
