@@ -38,26 +38,25 @@ const TreeLevel: React.FC<TreeLevelProps> = ({ branchId }) => {
   const { showArchived } = useBranch();
   const branch = state.branches[branchId];
   
-  if (!branch) return null;
-
-  const isNodeVisibleInCurrentView = !branch.archived || showArchived;
   const visibleSubtree = useMemo(() => isSubtreeVisible(branchId, state.branches, showArchived), [branchId, state.branches, showArchived]);
 
-  if (!visibleSubtree) {
-      return null;
-  }
-
-  // Calculate visible children dynamically
-  // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error
   const children = useMemo(() => {
+      if (!branch) return [];
       return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(branchId));
-  }, [state.branches, branchId]);
+  }, [state.branches, branchId, branch]);
 
-  const visibleChildrenIds = children
+  const visibleChildrenIds = useMemo(() => {
+    return children
       .filter(c => isSubtreeVisible(c.id, state.branches, showArchived))
       .sort((a, b) => (a.position || 0) - (b.position || 0))
       .map(c => c.id);
-      
+  }, [children, state.branches, showArchived]);
+
+  // EARLY RETURN AFTER ALL HOOKS
+  if (!branch) return null;
+  if (!visibleSubtree) return null;
+
+  const isNodeVisibleInCurrentView = !branch.archived || showArchived;
   const hasVisibleChildren = visibleChildrenIds.length > 0;
   const isCollapsed = branch.collapsed;
 
@@ -106,7 +105,6 @@ const FlowCanvas: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
 
-  // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error and access properties correctly
   const rootBranches = useMemo(() => {
     return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(state.id)).sort((a, b) => (a.position || 0) - (b.position || 0));
   }, [state.branches, state.id]);
