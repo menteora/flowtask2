@@ -11,8 +11,11 @@ import DatePicker from '../ui/DatePicker';
 import Markdown from '../ui/Markdown';
 
 const BranchDetails: React.FC = () => {
-  // @ts-ignore
-  const { state, session, isOfflineMode, showNotification, listProjectsFromSupabase, getProjectBranchesFromSupabase, moveLocalBranchToRemoteProject } = useProject();
+  const { 
+    state, session, isOfflineMode, showNotification, 
+    listProjectsFromSupabase, getProjectBranchesFromSupabase, moveLocalBranchToRemoteProject 
+  } = useProject();
+  
   const { selectedBranchId, selectBranch, updateBranch, deleteBranch, linkBranch, unlinkBranch, toggleBranchArchive } = useBranch();
   const { addTask, updateTask, moveTask, deleteTask, bulkUpdateTasks, bulkMoveTasks, setEditingTask, setReadingTask, showOnlyOpen } = useTask();
   
@@ -52,7 +55,6 @@ const BranchDetails: React.FC = () => {
   const [isBulkMoveMode, setIsBulkMoveMode] = useState(false);
   const [bulkMoveTargetId, setBulkMoveTargetId] = useState('');
 
-  // Reset completo quando cambia il ramo selezionato
   useEffect(() => {
     if (branch) {
       setLocalTitle(branch.title);
@@ -73,15 +75,11 @@ const BranchDetails: React.FC = () => {
     }
   }, [branch?.id]); 
 
-  // Sincronizzazione "silenziosa" per cambiamenti automatici (es. completamento task che attiva il ramo)
   useEffect(() => {
     if (branch) {
-      // Se lo stato globale cambia in ACTIVE e noi siamo ancora su PLANNED (senza averlo toccato manualmente)
-      // allora aggiorniamo lo stato locale per evitare il "isDirty"
       if (branch.status !== localStatus && branch.status === BranchStatus.ACTIVE) {
         setLocalStatus(branch.status);
       }
-      // Stessa cosa per la data di inizio
       if (branch.startDate !== localStartDate && branch.startDate) {
         setLocalStartDate(branch.startDate);
       }
@@ -170,9 +168,8 @@ const BranchDetails: React.FC = () => {
       if (!branch || !selectedRemoteProj || !selectedRemoteParent) return;
       setIsLoadingRemote(true);
       try {
-          // @ts-ignore
+          // La migrazione ora gestisce internamente la rimozione locale pulita senza soft-delete
           await moveLocalBranchToRemoteProject(branch.id, selectedRemoteProj, selectedRemoteParent);
-          deleteBranch(branch.id);
           selectBranch(null);
       } finally { setIsLoadingRemote(false); }
   };
@@ -180,7 +177,6 @@ const BranchDetails: React.FC = () => {
   const fetchRemoteData = async () => {
       setIsLoadingRemote(true);
       try {
-          // @ts-ignore
           const projs = await listProjectsFromSupabase();
           setRemoteProjects((projs || []).filter((p: any) => p.id !== state.id));
       } finally { setIsLoadingRemote(false); }
@@ -189,13 +185,12 @@ const BranchDetails: React.FC = () => {
   useEffect(() => {
       if (selectedRemoteProj) {
           setIsLoadingRemote(true);
-          // @ts-ignore
           getProjectBranchesFromSupabase(selectedRemoteProj).then(res => {
               setRemoteBranches(res || []);
               setIsLoadingRemote(false);
           });
       }
-  }, [selectedRemoteProj]);
+  }, [selectedRemoteProj, getProjectBranchesFromSupabase]);
 
   const potentialParents = useMemo<Branch[]>(() => {
       if (!branch) return [];
@@ -389,7 +384,7 @@ const BranchDetails: React.FC = () => {
             </div>
         </div>
 
-        {/* Descrizione con Toolbar WYSIWYG e Preview */}
+        {/* Descrizione */}
         <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
                 <label className="text-[10px] font-black uppercase text-slate-400">Descrizione {localType === 'objective' && '/ Motto'}</label>
@@ -554,6 +549,8 @@ const BranchDetails: React.FC = () => {
                                         <label className="text-[10px] font-black uppercase text-slate-400">2. Scegli Genitore</label>
                                         <select value={selectedRemoteParent} onChange={(e) => setSelectedRemoteParent(e.target.value)} className="w-full p-2 text-xs rounded border border-slate-200 dark:bg-slate-900 dark:border-slate-700 text-slate-800 dark:text-slate-200">
                                             <option value="">Seleziona...</option>
+                                            {/* Permette di migrare il ramo come radice del progetto target */}
+                                            <option value={selectedRemoteProj}>-- Radice Progetto (Nessun ramo padre) --</option>
                                             {remoteBranches.map((b: Branch) => <option key={b.id} value={b.id}>{b.title}</option>)}
                                         </select>
                                     </div>
@@ -581,7 +578,6 @@ const BranchDetails: React.FC = () => {
                         <button onClick={() => { deleteBranch(branch.id); selectBranch(null); }} className="flex-1 py-2 text-xs font-bold bg-red-600 text-white rounded-lg">Sì, Elimina</button>
                     </div>
                 </div>
-            /* Identifichiamo il ramo radice tramite parentIds che include l'ID progetto */
             ) : !branch.parentIds.includes(state.id) && (
                 <button onClick={() => setShowDeleteConfirm(true)} className="w-full py-3 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors uppercase tracking-widest">Elimina Ramo</button>
             )}
