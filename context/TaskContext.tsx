@@ -14,6 +14,8 @@ interface TaskContextType {
   setReadingDescriptionId: (id: string | null) => void;
   remindingUserId: string | null;
   setRemindingUserId: (id: string | null) => void;
+  reportUserId: string | null;
+  setReportUserId: (id: string | null) => void;
   showOnlyOpen: boolean;
   toggleShowOnlyOpen: () => void;
   messageTemplates: { opening: string; closing: string };
@@ -43,6 +45,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [readingTask, setReadingTask] = useState<{ branchId: string; taskId: string } | null>(null);
   const [readingDescriptionId, setReadingDescriptionId] = useState<string | null>(null);
   const [remindingUserId, setRemindingUserId] = useState<string | null>(null);
+  const [reportUserId, setReportUserId] = useState<string | null>(null);
   const [showOnlyOpen, setShowOnlyOpen] = useState(false);
   const [messageTemplates, setMessageTemplates] = useState({ opening: "Ciao {name}, ecco i tuoi task:", closing: "Buon lavoro!" });
 
@@ -57,6 +60,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       readingTask, setReadingTask,
       readingDescriptionId, setReadingDescriptionId,
       remindingUserId, setRemindingUserId,
+      reportUserId, setReportUserId,
       showOnlyOpen, toggleShowOnlyOpen: () => setShowOnlyOpen(!showOnlyOpen),
       messageTemplates, updateMessageTemplates: (ts) => setMessageTemplates(p => ({ ...p, ...ts })),
       ...taskActions,
