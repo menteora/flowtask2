@@ -19,6 +19,7 @@ import DescriptionReader from './components/modals/DescriptionReader';
 import TaskDescriptionReader from './components/modals/TaskDescriptionReader';
 import TaskEditorModal from './components/modals/TaskEditorModal';
 import MessageComposer from './components/modals/MessageComposer';
+import ReportGenerator from './components/modals/ReportGenerator';
 import { toPng } from 'html-to-image';
 import { localStorageService } from './services/localStorage';
 
@@ -119,7 +120,7 @@ const App: React.FC = () => {
           reader.readAsText(file); e.target.value = '';
       }} accept=".json" className="hidden" />
       
-      <DescriptionReader /> <TaskDescriptionReader /> <TaskEditorModal /> <MessageComposer />
+      <DescriptionReader /> <TaskDescriptionReader /> <TaskEditorModal /> <MessageComposer /> <ReportGenerator />
 
       {isProjectMenuOpen && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex flex-col justify-end sm:justify-center sm:items-center" onClick={() => { setIsProjectMenuOpen(false); setDeletingProjectId(null); }}>

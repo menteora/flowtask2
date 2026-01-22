@@ -1,9 +1,10 @@
+
 import React, { useMemo, useState, useCallback } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
 import { Branch, Person } from '../../types';
-import { CheckSquare, Square, ClipboardList, HelpCircle, ArrowRight, Calendar, Mail, MessageCircle, FileText, Folder, Pin, X, User, CheckCircle2 } from 'lucide-react';
+import { CheckSquare, Square, ClipboardList, HelpCircle, ArrowRight, Calendar, Mail, MessageCircle, FileText, Folder, Pin, X, User, CheckCircle2, FileOutput } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 
 // Interface for the aggregated group
@@ -37,9 +38,10 @@ interface AggregatedUserGroup {
 const UserTasksPanel: React.FC = () => {
   const { state, projects, switchProject, showNotification } = useProject();
   const { showAllProjects, selectBranch, showArchived } = useBranch();
-  const { updateTask, showOnlyOpen, setEditingTask, setRemindingUserId, setReadingTask } = useTask();
+  const { updateTask, showOnlyOpen, setEditingTask, setRemindingUserId, setReportUserId, setReadingTask } = useTask();
   
   const [conflictGroup, setConflictGroup] = useState<AggregatedUserGroup | null>(null);
+  const [pendingAction, setPendingAction] = useState<'contact' | 'report' | null>(null);
 
   // Inheritance helper inside useMemo
   const getInheritedResponsibleId = useCallback((bid: string, projectBranches: Record<string, Branch>): string | undefined => {
@@ -54,10 +56,8 @@ const UserTasksPanel: React.FC = () => {
     const groups: Record<string, AggregatedUserGroup> = {};
     const sourceProjects = showAllProjects ? projects : [state];
     
-    // Map to track which original ID maps to which normalized name key
     const idToKeyMap: Record<string, string> = {};
 
-    // 1. Collect People & Normalize
     sourceProjects.forEach(proj => {
         proj.people.forEach(person => {
             const normalizedKey = person.name.trim().toLowerCase();
@@ -82,7 +82,6 @@ const UserTasksPanel: React.FC = () => {
         });
     });
 
-    // Initialize Unassigned group
     groups['unassigned'] = {
       key: 'unassigned',
       displayName: 'Non Assegnati',
@@ -91,7 +90,6 @@ const UserTasksPanel: React.FC = () => {
       stats: { total: 0, completed: 0, percentage: 0 }
     };
 
-    // 2. Distribute Tasks with Inheritance logic
     sourceProjects.forEach(proj => {
         const branches = proj.branches;
         (Object.values(branches) as Branch[]).forEach(branch => {
@@ -107,7 +105,6 @@ const UserTasksPanel: React.FC = () => {
                 const lookup = idToKeyMap[`${proj.id}-${task.assigneeId}`];
                 if (lookup && groups[lookup]) targetKey = lookup;
             } else {
-                // If NO specific assignee, try branch inheritance
                 const inhId = getInheritedResponsibleId(branch.id, branches);
                 if (inhId) {
                     const lookup = idToKeyMap[`${proj.id}-${inhId}`];
@@ -137,7 +134,6 @@ const UserTasksPanel: React.FC = () => {
         });
     });
 
-    // 3. Stats & Sorting
     Object.values(groups).forEach(group => {
       group.tasks.sort((a, b) => {
           if (a.completed === b.completed) return 0;
@@ -161,20 +157,17 @@ const UserTasksPanel: React.FC = () => {
     return result;
   }, [state, projects, showAllProjects, showArchived, showOnlyOpen, getInheritedResponsibleId]);
 
-  const handleContactClick = (group: AggregatedUserGroup) => {
-      const contactableProfiles = group.profiles.filter(p => p.email || p.phone);
-      if (contactableProfiles.length === 0) {
-          showNotification("Nessun contatto disponibile.", "error");
-          return;
+  const handleActionClick = (group: AggregatedUserGroup, action: 'contact' | 'report') => {
+      const currentProjectProfile = group.profiles.find(p => p.projectId === state.id);
+      
+      if (group.profiles.length > 1 && !currentProjectProfile) {
+          setConflictGroup(group);
+          setPendingAction(action);
+      } else {
+          const targetId = currentProjectProfile ? currentProjectProfile.id : group.profiles[0].id;
+          if (action === 'contact') setRemindingUserId(targetId);
+          else setReportUserId(targetId);
       }
-
-      const uniqueContacts = new Set(contactableProfiles.map(p => `${p.email || ''}|${p.phone || ''}`));
-      if (uniqueContacts.size === 1) {
-          const currentProjectProfile = contactableProfiles.find(p => p.projectId === state.id);
-          const targetId = currentProjectProfile ? currentProjectProfile.id : contactableProfiles[0].id;
-          if (contactableProfiles.length > 1 && !currentProjectProfile) setConflictGroup(group); 
-          else setRemindingUserId(targetId);
-      } else setConflictGroup(group);
   };
 
   return (
@@ -184,14 +177,26 @@ const UserTasksPanel: React.FC = () => {
               <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-xl shadow-2xl border border-gray-200 dark:border-slate-800 p-6">
                   <div className="flex justify-between items-start mb-4">
                       <div>
-                          <h3 className="text-lg font-bold text-slate-800 dark:text-white">Seleziona Contatto</h3>
-                          <p className="text-sm text-slate-500">L'utente <strong>{conflictGroup.displayName}</strong> è in più progetti. Scegli il riferimento:</p>
+                          <h3 className="text-lg font-bold text-slate-800 dark:text-white">Seleziona Riferimento</h3>
+                          <p className="text-sm text-slate-500">L'utente <strong>{conflictGroup.displayName}</strong> è in più progetti. Scegli il profilo da usare per il {pendingAction === 'contact' ? 'sollecito' : 'report'}:</p>
                       </div>
-                      <button onClick={() => setConflictGroup(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
+                      <button onClick={() => { setConflictGroup(null); setPendingAction(null); }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
                   </div>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                       {conflictGroup.profiles.map((profile, idx) => (
-                          <button key={`${profile.projectId}-${profile.id}-${idx}`} onClick={() => { if (profile.projectId !== state.id) { switchProject(profile.projectId); showNotification(`Passaggio a ${profile.projectName}...`, "success"); setTimeout(() => { setRemindingUserId(profile.id); setConflictGroup(null); }, 150); } else { setRemindingUserId(profile.id); setConflictGroup(null); } }} className="w-full flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all group text-left">
+                          <button 
+                            key={`${profile.projectId}-${profile.id}-${idx}`} 
+                            onClick={() => { 
+                                if (profile.projectId !== state.id) switchProject(profile.projectId);
+                                setTimeout(() => { 
+                                    if (pendingAction === 'contact') setRemindingUserId(profile.id);
+                                    else setReportUserId(profile.id);
+                                    setConflictGroup(null); 
+                                    setPendingAction(null);
+                                }, 150); 
+                            }} 
+                            className="w-full flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all group text-left"
+                          >
                               <div className="flex items-center gap-3">
                                   <Avatar person={profile} size="md" />
                                   <div className="min-w-0">
@@ -199,7 +204,7 @@ const UserTasksPanel: React.FC = () => {
                                       <div className="text-xs text-slate-500 flex flex-col">{profile.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3"/> {profile.email}</span>}{profile.phone && <span className="flex items-center gap-1"><MessageCircle className="w-3 h-3"/> {profile.phone}</span>}</div>
                                   </div>
                               </div>
-                              {profile.projectId !== state.id && <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-500" />}
+                              <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-500" />
                           </button>
                       ))}
                   </div>
@@ -244,7 +249,12 @@ const UserTasksPanel: React.FC = () => {
                             </div>
                             <div className="text-right pl-2 flex flex-col items-end gap-1">
                                 <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{group.stats.percentage}%</span>
-                                {!isUnassigned && <button onClick={() => handleContactClick(group)} className="text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded-md hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center gap-1"><MessageCircle className="w-3 h-3" /> Contatta</button>}
+                                {!isUnassigned && (
+                                    <div className="flex items-center gap-1">
+                                        <button onClick={() => handleActionClick(group, 'report')} className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors" title="Genera Report"><FileOutput className="w-4 h-4" /></button>
+                                        <button onClick={() => handleActionClick(group, 'contact')} className="text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded-md hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center gap-1"><MessageCircle className="w-3 h-3" /> Contatta</button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"><div className={`h-full transition-all duration-500 ${isUnassigned ? 'bg-slate-400' : 'bg-indigo-500'}`} style={{ width: `${group.stats.percentage}%` }} /></div>
@@ -258,7 +268,7 @@ const UserTasksPanel: React.FC = () => {
                                     return (
                                         <li key={task.id} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
                                             <div className="flex items-start gap-3">
-                                                <button onClick={() => { if (isForeign) { switchProject(task.projectId); showNotification(`Passaggio a ${task.projectName}...`, "success"); } else { updateTask(task.branchId, task.id, { completed: !task.completed }); } }} className={`mt-0.5 flex-shrink-0 ${task.completed ? 'text-green-500' : 'text-slate-300 dark:text-slate-500 hover:text-indigo-500'}`}>{task.completed ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}</button>
+                                                <button onClick={() => { if (isForeign) { switchProject(task.projectId); showNotification(`Passaggio a ${task.projectName}...`, "success"); } else { updateTask(task.branchId, task.id, { completed: !task.completed }); } }} className={`mt-0.5 flex-shrink-0 ${task.completed ? 'text-green-500' : 'text-slate-300 dark:text-slate-600'}`}>{task.completed ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}</button>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
                                                         <p className={`text-sm font-medium mb-0.5 cursor-pointer hover:underline ${task.completed ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-200'}`} onClick={() => { if (isForeign) { switchProject(task.projectId); showNotification(`Passaggio a ${task.projectName}...`, "success"); setTimeout(() => setEditingTask({ branchId: task.branchId, taskId: task.id }), 150); } else { setEditingTask({ branchId: task.branchId, taskId: task.id }); } }}>{task.title}</p>
