@@ -7,7 +7,7 @@ import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
 import { ChevronRight, ChevronDown, Plus, FileText, CheckSquare, Square, Archive, GitBranch, ChevronUp, Tag, Calendar, CheckCircle2, ChevronsDown, ChevronsUp, Layers, RefreshCw, Zap, ArrowUp, ArrowDown, Folder, Compass, Quote } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import Markdown from '../ui/Markdown';
-import { Branch } from '../../types';
+import { Branch, BranchStatus } from '../../types';
 
 interface FolderNodeProps {
   branchId: string;
@@ -51,13 +51,19 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
   const shouldRender = isSelfVisible || hasActiveChildren;
   if (!shouldRender) return null;
 
-  const visibleChildren = children.sort((a, b) => (a.position || 0) - (b.position || 0));
+  const visibleChildren = children.sort((a, b) => {
+      const posA = a.position ?? 0;
+      const posB = b.position ?? 0;
+      if (posA !== posB) return posA - posB;
+      return a.id.localeCompare(b.id);
+  });
+
   const hasChildren = visibleChildren.length > 0;
   const hasTasks = sortedTasks.length > 0;
   const hasContent = hasChildren || hasTasks;
   
   const isSelected = selectedBranchId === branchId;
-  const statusConfig = STATUS_CONFIG[branch.status];
+  const statusConfig = STATUS_CONFIG[branch.status as BranchStatus] || STATUS_CONFIG[BranchStatus.PLANNED];
   const isOpen = !branch.collapsed;
 
   const isRootBranch = branch.parentIds.includes(state.id);
@@ -203,7 +209,14 @@ const FolderTree: React.FC = () => {
     const branchesCount = Object.keys(state.branches).length - 1;
     
     const rootBranches = useMemo(() => {
-        return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(state.id)).sort((a, b) => (a.position || 0) - (b.position || 0));
+        return (Object.values(state.branches) as Branch[])
+            .filter(b => b.parentIds?.includes(state.id))
+            .sort((a, b) => {
+                const posA = a.position ?? 0;
+                const posB = b.position ?? 0;
+                if (posA !== posB) return posA - posB;
+                return a.id.localeCompare(b.id);
+            });
     }, [state.branches, state.id]);
 
     return (

@@ -44,14 +44,14 @@ export const useBranchActions = (
             newSprintCounter = counter + 1;
         }
 
-        // Calculate sibling index by searching all branches for current parent
+        // Calcola la posizione cercando il numero di fratelli attuali
         const siblingCount = Object.values(p.branches).filter((b: any) => b.parentIds?.includes(parentId)).length;
 
         const newBranch: Branch = {
             id: newId,
             title,
             status: BranchStatus.PLANNED,
-            type: 'standard', // DEFAULT
+            type: 'standard',
             tasks: [],
             parentIds: [parentId],
             position: siblingCount,
@@ -62,7 +62,6 @@ export const useBranchActions = (
         const updatedBranches = { ...p.branches };
         updatedBranches[newId] = newBranch;
         
-        // Update parent only if sprint counter changed
         if (newSprintCounter !== parent.sprintCounter) {
             updatedBranches[parentId] = {
                 ...parent,
@@ -110,27 +109,54 @@ export const useBranchActions = (
         if (!branch || !branch.parentIds[0]) return p;
         
         const parentId = branch.parentIds[0];
-        // Fix: Explicitly cast to Branch[] to avoid 'unknown' type error and access properties correctly
+        
+        // 1. Ottieni tutti i fratelli ordinati
         const siblings = (Object.values(p.branches) as Branch[])
             .filter((b: Branch) => b.parentIds?.includes(parentId))
-            .sort((a: Branch, b: Branch) => (a.position ?? 0) - (b.position ?? 0));
+            .sort((a: Branch, b: Branch) => {
+                const posA = a.position ?? 0;
+                const posB = b.position ?? 0;
+                if (posA !== posB) return posA - posB;
+                return a.id.localeCompare(b.id); // Stabilità in caso di posizioni uguali
+            });
             
         const idx = siblings.findIndex(b => b.id === branchId);
         const targetIdx = direction === 'prev' ? idx - 1 : idx + 1;
+        
         if (targetIdx < 0 || targetIdx >= siblings.length) return p;
 
-        const targetBranch = siblings[targetIdx];
-        const newPos = targetBranch.position;
-        const oldPos = branch.position;
+        // 2. Crea una mappa di aggiornamento per TUTTI i fratelli
+        // Questo risolve i conflitti di posizioni uguali forzando una sequenza pulita 0, 1, 2...
+        const updatedBranches = { ...p.branches };
+        const changedBranches: Branch[] = [];
 
-        const updatedBranch = { ...branch, position: newPos, version: (branch.version || 1) + 1, updatedAt: new Date().toISOString() };
-        const updatedTarget = { ...targetBranch, position: oldPos, version: (targetBranch.version || 1) + 1, updatedAt: new Date().toISOString() };
-        
-        const updatedBranches = { ...p.branches, [branch.id]: updatedBranch, [targetBranch.id]: updatedTarget };
+        const newOrder = [...siblings];
+        // Esegui lo scambio nell'array
+        [newOrder[idx], newOrder[targetIdx]] = [newOrder[targetIdx], newOrder[idx]];
+
+        // Riassegna le posizioni in base al nuovo ordine
+        newOrder.forEach((b, newPos) => {
+            if (b.position !== newPos) {
+                const updated = {
+                    ...b,
+                    position: newPos,
+                    version: (b.version || 1) + 1,
+                    updatedAt: new Date().toISOString()
+                };
+                updatedBranches[b.id] = updated;
+                changedBranches.push(updated);
+            }
+        });
+
+        if (changedBranches.length === 0) return p;
+
         const newState = { ...p, branches: updatedBranches };
         
-        persistenceService.saveBranch(p.id, updatedBranch, isOfflineMode, supabaseClient, newState);
-        persistenceService.saveBranch(p.id, updatedTarget, isOfflineMode, supabaseClient, newState);
+        // 3. Persistenza: salva tutti i rami che hanno cambiato posizione
+        changedBranches.forEach(b => {
+            persistenceService.saveBranch(p.id, b, isOfflineMode, supabaseClient, newState);
+        });
+
         return newState;
     }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
@@ -148,12 +174,10 @@ export const useBranchActions = (
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
   const toggleBranchArchive = useCallback(async (branchId: string) => {
-      // Find branch and toggle its archive state
       setProjects((prev: any[]) => prev.map(p => {
           if (p.id !== activeProjectId) return p;
           const b = p.branches[branchId];
           if (!b) return p;
-          // Incrementa la versione per triggerare l'UPDATE invece dell'UPSERT nel persistence engine
           const updated = { ...b, archived: !b.archived, version: (b.version || 1) + 1, updatedAt: new Date().toISOString() };
           const newState = { ...p, branches: { ...p.branches, [branchId]: updated } };
           persistenceService.saveBranch(p.id, updated, isOfflineMode, supabaseClient, newState);
