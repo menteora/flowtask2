@@ -69,9 +69,17 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
 
   const siblings = useMemo(() => {
       if (!branch) return [];
-      if (isRootBranch) return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(state.id)).sort((a, b) => (a.position || 0) - (b.position || 0));
-      if (!parentId) return [];
-      return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(parentId)).sort((a, b) => (a.position || 0) - (b.position || 0));
+      const targetParentId = isRootBranch ? state.id : parentId;
+      if (!targetParentId) return [];
+      
+      return (Object.values(state.branches) as Branch[])
+        .filter(b => b.parentIds?.includes(targetParentId))
+        .sort((a, b) => {
+            const posA = a.position ?? 0;
+            const posB = b.position ?? 0;
+            if (posA !== posB) return posA - posB;
+            return a.id.localeCompare(b.id);
+        });
   }, [state.branches, parentId, isRootBranch, state.id, branch]);
 
   if (!branch) return null;
@@ -254,7 +262,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
       >
         <div className={`p-3 border-b border-slate-100/50 dark:border-slate-700/50 flex justify-between items-start ${branch.archived ? 'bg-slate-50 dark:bg-slate-800' : ''} relative`}>
           <div className="flex flex-col gap-1 overflow-hidden flex-1 min-w-0 pr-1">
-             <h3 className="font-bold text-slate-800 dark:text-slate-100 truncate text-sm flex items-center gap-2" title={branch.title}>
+             <h3 className="font-bold text-slate-800 dark:text-white truncate text-sm flex items-center gap-2" title={branch.title}>
               {branch.title}
               {branch.archived && <Archive className="w-3 h-3 text-slate-400" />}
             </h3>

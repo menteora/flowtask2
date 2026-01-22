@@ -47,7 +47,12 @@ const TreeLevel: React.FC<TreeLevelProps> = ({ branchId }) => {
   const visibleChildrenIds = useMemo(() => {
     return children
       .filter(c => isSubtreeVisible(c.id, state.branches, showArchived))
-      .sort((a, b) => (a.position || 0) - (b.position || 0))
+      .sort((a, b) => {
+          const posA = a.position ?? 0;
+          const posB = b.position ?? 0;
+          if (posA !== posB) return posA - posB;
+          return a.id.localeCompare(b.id);
+      })
       .map(c => c.id);
   }, [children, state.branches, showArchived]);
 
@@ -103,7 +108,14 @@ const FlowCanvas: React.FC = () => {
   const [startPos, setStartPos] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
 
   const rootBranches = useMemo(() => {
-    return (Object.values(state.branches) as Branch[]).filter(b => b.parentIds?.includes(state.id)).sort((a, b) => (a.position || 0) - (b.position || 0));
+    return (Object.values(state.branches) as Branch[])
+        .filter(b => b.parentIds?.includes(state.id))
+        .sort((a, b) => {
+            const posA = a.position ?? 0;
+            const posB = b.position ?? 0;
+            if (posA !== posB) return posA - posB;
+            return a.id.localeCompare(b.id);
+        });
   }, [state.branches, state.id]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
