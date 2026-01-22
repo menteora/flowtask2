@@ -34,7 +34,10 @@ const ReportGenerator: React.FC = () => {
           const getEffectiveResponsibleId = (bid: string): string | undefined => {
               const b = branches[bid];
               if (!b) return undefined;
-              if (b.responsibleId) return b.responsibleId;
+              if (b.responsibleId) {
+                  if (b.responsibleId === 'none') return undefined; // Interrompi eredità
+                  return b.responsibleId;
+              }
               // Se non c'è un responsabile, risaliamo al primo genitore (assumendo struttura ad albero)
               if (b.parentIds && b.parentIds.length > 0 && b.parentIds[0] !== proj.id) {
                   return getEffectiveResponsibleId(b.parentIds[0]);

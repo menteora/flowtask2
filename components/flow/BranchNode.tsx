@@ -55,6 +55,8 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
     if (!b) return undefined;
     
     if (b.responsibleId) {
+        // Se è 'none', restituiamo undefined per indicare che non c'è responsabile e interrompere la risalita
+        if (b.responsibleId === 'none') return undefined;
         return state.people.find(p => p.id === b.responsibleId);
     }
     
@@ -89,9 +91,12 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
   const completedTasks = branch.tasks.filter(t => t.completed).length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-  const currentResp = branch.responsibleId ? state.people.find(p => p.id === branch.responsibleId) : undefined;
-  // Se l'ID esiste ma non troviamo la persona, è un caso di orfano
-  const isResponsibleOrphan = branch.responsibleId ? !currentResp : false;
+  const currentResp = branch.responsibleId && branch.responsibleId !== 'none' 
+      ? state.people.find(p => p.id === branch.responsibleId) 
+      : undefined;
+
+  // Se l'ID esiste, non è 'none', ma non troviamo la persona, è un caso di orfano
+  const isResponsibleOrphan = branch.responsibleId && branch.responsibleId !== 'none' ? !currentResp : false;
 
   const inheritedResp = !branch.responsibleId && branch.parentIds.length > 0 && branch.parentIds[0] !== state.id
     ? getInheritedResponsible(branch.parentIds[0]) 
