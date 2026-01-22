@@ -47,7 +47,10 @@ const UserTasksPanel: React.FC = () => {
   const getInheritedResponsibleId = useCallback((bid: string, projectBranches: Record<string, Branch>): string | undefined => {
     const b = projectBranches[bid];
     if (!b) return undefined;
-    if (b.responsibleId) return b.responsibleId;
+    if (b.responsibleId) {
+        if (b.responsibleId === 'none') return undefined; // Interrompi eredità
+        return b.responsibleId;
+    }
     if (b.parentIds && b.parentIds.length > 0) return getInheritedResponsibleId(b.parentIds[0], projectBranches);
     return undefined;
   }, []);
@@ -106,7 +109,7 @@ const UserTasksPanel: React.FC = () => {
                 if (lookup && groups[lookup]) targetKey = lookup;
             } else {
                 const inhId = getInheritedResponsibleId(branch.id, branches);
-                if (inhId) {
+                if (inhId && inhId !== 'none') {
                     const lookup = idToKeyMap[`${proj.id}-${inhId}`];
                     if (lookup && groups[lookup]) {
                         targetKey = lookup;

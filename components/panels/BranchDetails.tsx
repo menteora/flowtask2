@@ -367,6 +367,7 @@ const BranchDetails: React.FC = () => {
                 <label className="text-[10px] font-black uppercase text-slate-400 pl-1">Responsabile</label>
                 <select value={localResponsibleId || ''} onChange={(e) => setLocalResponsibleId(e.target.value || undefined)} className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-200">
                     <option value="">Eredita...</option>
+                    <option value="none">Nessuno (Interrompi Eredità)</option>
                     {state.people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
             </div>
