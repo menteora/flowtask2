@@ -19,7 +19,9 @@ interface TaskContextType {
   showOnlyOpen: boolean;
   toggleShowOnlyOpen: () => void;
   messageTemplates: { opening: string; closing: string };
+  focusTemplate: string;
   updateMessageTemplates: (templates: Partial<{ opening: string; closing: string }>) => void;
+  updateFocusTemplate: (template: string) => void;
 
   // Actions
   addTask: (branchId: string, title: string) => void;
@@ -38,6 +40,11 @@ interface TaskContextType {
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
+const DEFAULT_FOCUS_TEMPLATE = `### {title}
+**Progetto:** {project} | **Ramo:** {branch}
+{description}
+---`;
+
 export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { setProjects, activeProjectId, isOfflineMode, supabaseClient, session } = useProject();
   
@@ -48,11 +55,17 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [reportUserId, setReportUserId] = useState<string | null>(null);
   const [showOnlyOpen, setShowOnlyOpen] = useState(false);
   const [messageTemplates, setMessageTemplates] = useState({ opening: "Ciao {name}, ecco i tuoi task:", closing: "Buon lavoro!" });
+  const [focusTemplate, setFocusTemplate] = useState(() => localStorage.getItem('flowtask_focus_template') || DEFAULT_FOCUS_TEMPLATE);
 
   const userId = session?.user?.id;
 
   const taskActions = useTaskActions(setProjects, activeProjectId, isOfflineMode, supabaseClient, userId);
   const peopleActions = usePeopleActions(setProjects, activeProjectId, isOfflineMode, supabaseClient);
+
+  const updateFocusTemplate = (t: string) => {
+    setFocusTemplate(t);
+    localStorage.setItem('flowtask_focus_template', t);
+  };
 
   return (
     <TaskContext.Provider value={{
@@ -62,7 +75,10 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       remindingUserId, setRemindingUserId,
       reportUserId, setReportUserId,
       showOnlyOpen, toggleShowOnlyOpen: () => setShowOnlyOpen(!showOnlyOpen),
-      messageTemplates, updateMessageTemplates: (ts) => setMessageTemplates(p => ({ ...p, ...ts })),
+      messageTemplates,
+      focusTemplate,
+      updateMessageTemplates: (ts) => setMessageTemplates(p => ({ ...p, ...ts })),
+      updateFocusTemplate,
       ...taskActions,
       ...peopleActions
     }}>
