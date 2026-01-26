@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useTask } from '../../context/TaskContext';
 import { 
-  Database, Download, Key, Cloud, Loader2, LogOut, Upload, Trash2, RefreshCw, FileJson, Terminal, Check, Copy, Wifi, WifiOff, MessageSquare, Settings as SettingsIcon, FileDown
+  Database, Download, Key, Cloud, Loader2, LogOut, Upload, Trash2, RefreshCw, FileJson, Terminal, Check, Copy, Wifi, WifiOff, MessageSquare, Settings as SettingsIcon, FileDown, Target, Info
 } from 'lucide-react';
 
 const SettingsPanel: React.FC = () => {
@@ -14,13 +14,14 @@ const SettingsPanel: React.FC = () => {
     isOfflineMode
   } = useProject();
 
-  const { messageTemplates, updateMessageTemplates } = useTask();
+  const { messageTemplates, updateMessageTemplates, focusTemplate, updateFocusTemplate } = useTask();
 
   const [activeTab, setActiveTab] = useState<'cloud' | 'preferences' | 'sql'>('cloud');
   const [url, setUrl] = useState(supabaseConfig.url);
   const [key, setKey] = useState(supabaseConfig.key);
   const [msgOpening, setMsgOpening] = useState(messageTemplates.opening);
   const [msgClosing, setMsgClosing] = useState(messageTemplates.closing);
+  const [fTemplate, setFTemplate] = useState(focusTemplate);
 
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [remoteProjects, setRemoteProjects] = useState<any[]>([]);
@@ -40,7 +41,8 @@ const SettingsPanel: React.FC = () => {
 
   const handleSaveTemplates = () => {
       updateMessageTemplates({ opening: msgOpening, closing: msgClosing });
-      showNotification("Template aggiornati.", 'success');
+      updateFocusTemplate(fTemplate);
+      showNotification("Preferenze aggiornate.", 'success');
   };
 
   const handleListProjects = async () => {
@@ -53,16 +55,17 @@ const SettingsPanel: React.FC = () => {
   };
 
   const handleUpload = async () => {
-    setIsUploading(true);
-    try {
-      await uploadProjectToSupabase();
-      showNotification("Progetto caricato sul cloud con successo.", 'success');
-      handleListProjects();
-    } catch (err) {
-      showNotification("Errore durante il caricamento del progetto.", 'error');
-    } finally {
-      setIsUploading(false);
-    }
+      if (!session) return;
+      setIsUploading(true);
+      try {
+          await uploadProjectToSupabase();
+          showNotification("Progetto caricato correttamente.", 'success');
+          handleListProjects();
+      } catch (err) {
+          showNotification("Errore durante il caricamento.", 'error');
+      } finally {
+          setIsUploading(false);
+      }
   };
 
   const fullSqlSetup = `-- CONFIGURAZIONE DATABASE FLOWTASK (FRESH START - DYNAMIC TREE)
@@ -177,7 +180,7 @@ CREATE INDEX idx_flowtask_people_project_id ON public.flowtask_people (project_i
             <h2 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3">
                 <SettingsIcon className="w-8 h-8 text-indigo-600" /> Impostazioni
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Configura la persistenza dei tuoi dati.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Configura la preferenze del tuo workspace.</p>
         </div>
         
         <div className="flex flex-wrap gap-2">
@@ -268,17 +271,50 @@ CREATE INDEX idx_flowtask_people_project_id ON public.flowtask_people (project_i
           )}
 
           {activeTab === 'preferences' && (
-              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-4 shadow-sm">
-                  <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-white"><MessageSquare className="w-5 h-5 text-indigo-500" /> Template Solleciti</h3>
-                  <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 mb-1.5 block">Apertura</label>
-                      <textarea value={msgOpening} onChange={(e) => setMsgOpening(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs min-h-[80px] outline-none focus:ring-1 focus:ring-indigo-500" />
-                  </div>
-                  <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 mb-1.5 block">Chiusura</label>
-                      <textarea value={msgClosing} onChange={(e) => setMsgClosing(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs min-h-[80px] outline-none focus:ring-1 focus:ring-indigo-500" />
-                  </div>
-                  <button onClick={handleSaveTemplates} className="w-full py-3 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg hover:bg-indigo-700 transition-all">Salva Template</button>
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-4 shadow-sm">
+                    <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-white"><MessageSquare className="w-5 h-5 text-indigo-500" /> Template Solleciti</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                          <label className="text-[10px] font-black uppercase text-slate-400 mb-1.5 block">Apertura</label>
+                          <textarea value={msgOpening} onChange={(e) => setMsgOpening(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs min-h-[80px] outline-none focus:ring-1 focus:ring-indigo-500" />
+                      </div>
+                      <div>
+                          <label className="text-[10px] font-black uppercase text-slate-400 mb-1.5 block">Chiusura</label>
+                          <textarea value={msgClosing} onChange={(e) => setMsgClosing(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs min-h-[80px] outline-none focus:ring-1 focus:ring-indigo-500" />
+                      </div>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-white"><Target className="w-5 h-5 text-amber-500" /> Focus Template (Markdown)</h3>
+                    </div>
+                    
+                    <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 p-3 rounded-xl flex gap-3">
+                      <Info className="w-5 h-5 text-blue-500 shrink-0" />
+                      <div className="text-[11px] text-blue-700 dark:text-blue-300">
+                        <p className="font-bold mb-1">Placeholders disponibili:</p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-y-1 gap-x-4 font-mono">
+                          <span><code>{"{title}"}</code>: Titolo task</span>
+                          <span><code>{"{description}"}</code>: Descrizione</span>
+                          <span><code>{"{branch}"}</code>: Nome ramo</span>
+                          <span><code>{"{project}"}</code>: Nome progetto</span>
+                          <span><code>{"{dueDate}"}</code>: Data scadenza</span>
+                          <span><code>{"{assignee}"}</code>: Responsabile</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <textarea 
+                      value={fTemplate} 
+                      onChange={(e) => setFTemplate(e.target.value)} 
+                      className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs min-h-[200px] font-mono outline-none focus:ring-1 focus:ring-indigo-500" 
+                      placeholder="Scrivi il tuo template Markdown qui..."
+                    />
+                </div>
+
+                <button onClick={handleSaveTemplates} className="w-full py-3 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg hover:bg-indigo-700 transition-all">Salva Preferenze</button>
               </div>
           )}
 
