@@ -104,16 +104,20 @@ const FocusPanel: React.FC = () => {
     };
 
     return (
-        <div className="w-full max-w-4xl mx-auto h-full flex flex-col p-4 md:p-8 overflow-y-auto pb-24">
+        <div className="w-full max-w-4xl mx-auto h-full flex flex-col p-4 md:p-8 overflow-y-auto pb-32">
             <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        <Target className="w-8 h-8 text-amber-500" />
+                    <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <Target className="w-6 h-6 md:w-8 h-8 text-amber-500" />
                         Focus & Priorità
-                        {showAllProjects && <span className="text-xs font-normal text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full ml-2">Tutti i progetti</span>}
                     </h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">
-                        I task che hai pinnato per un accesso rapido.
+                    {showAllProjects && (
+                        <p className="inline-flex items-center text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full mt-1 border border-amber-100 dark:border-amber-800 uppercase tracking-widest">
+                            Vista Globale attiva
+                        </p>
+                    )}
+                    <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        Task pinnati per accesso rapido.
                     </p>
                 </div>
 
@@ -123,38 +127,39 @@ const FocusPanel: React.FC = () => {
                             onClick={() => setViewMode('cards')}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'cards' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                         >
-                            <LayoutGrid className="w-3 h-3" /> CARDS
+                            <LayoutGrid className="w-3.5 h-3.5" /> CARDS
                         </button>
                         <button 
                             onClick={() => setViewMode('template')}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'template' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                         >
-                            <FileTextIcon className="w-3 h-3" /> TEMPLATE
+                            <FileTextIcon className="w-3.5 h-3.5" /> TEMPLATE
                         </button>
                     </div>
                 )}
             </div>
 
             {pinnedTasks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-64 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                <div className="flex flex-col items-center justify-center h-64 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-900/50 p-6">
                     <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-4">
                         <Pin className="w-8 h-8 text-slate-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300">Nessun task in focus</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
-                        Usa l'icona <Pin className="w-3 h-3 inline" /> nei dettagli dei rami per aggiungere task qui.
+                    <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">Nessun task in focus</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
+                        Usa l'icona <Pin className="w-3 h-3 inline text-amber-500" /> nei dettagli dei rami per aggiungere task qui e visualizzarli in questa dashboard.
                     </p>
                 </div>
             ) : viewMode === 'cards' ? (
-                <div className="grid gap-6">
+                <div className="grid gap-6 md:gap-8 px-2 pt-2">
                     {pinnedTasks.map(task => {
                         const isForeign = task.projectId !== state.id;
                         const project = projects.find(p => p.id === task.projectId);
                         const assignee = project?.people.find(p => p.id === task.assigneeId);
 
                         return (
-                            <div key={task.id} className="relative bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700 flex items-start gap-4 transition-all hover:border-amber-400 dark:hover:border-amber-600 group">
-                                {/* Unpin Rapido (In alto a destra) */}
+                            <div key={task.id} className="relative bg-white dark:bg-slate-800 p-5 md:p-6 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row items-start gap-3 md:gap-5 transition-all hover:border-amber-400 dark:hover:border-amber-600 group">
+                                
+                                {/* Badge Pin (Non più tagliato, posizionato sull'angolo) */}
                                 <button 
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -165,10 +170,10 @@ const FocusPanel: React.FC = () => {
                                             updateTask(task.branchId, task.id, { pinned: false });
                                         }
                                     }}
-                                    className="absolute -top-3 -right-3 p-2 bg-white dark:bg-slate-700 text-amber-500 rounded-full shadow-lg border border-slate-100 dark:border-slate-600 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-all active:scale-90 z-10"
+                                    className="absolute -top-3 -right-2 md:-top-4 md:-right-3 p-2.5 bg-white dark:bg-slate-700 text-amber-500 rounded-full shadow-lg border border-slate-100 dark:border-slate-600 hover:bg-amber-50 dark:hover:bg-amber-900 transition-all active:scale-90 z-20"
                                     title="Togli dal Focus"
                                 >
-                                    <Pin className="w-5 h-5 fill-current" />
+                                    <Pin className="w-4 h-4 md:w-5 h-5 fill-current" />
                                 </button>
 
                                 <button 
@@ -180,16 +185,16 @@ const FocusPanel: React.FC = () => {
                                             updateTask(task.branchId, task.id, { completed: true });
                                         }
                                     }}
-                                    className={`mt-1 shrink-0 ${isForeign ? 'text-slate-300 dark:text-slate-600' : 'text-slate-300 hover:text-green-500 dark:text-slate-600 dark:hover:text-green-400'} transition-colors`}
+                                    className={`mt-1 shrink-0 ${isForeign ? 'text-slate-200 dark:text-slate-700 cursor-not-allowed' : 'text-slate-300 hover:text-green-500 dark:text-slate-600 dark:hover:text-green-400'} transition-colors`}
                                 >
-                                    <Square className="w-7 h-7" />
+                                    <Square className="w-6 h-6 md:w-8 h-8" />
                                 </button>
 
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex flex-col gap-1 mb-4">
-                                        <div className="flex items-center gap-2">
+                                    <div className="flex flex-col gap-2 mb-4 pr-4">
+                                        <div className="flex items-start gap-2">
                                             <h3 
-                                                className="text-lg font-black text-slate-800 dark:text-white truncate cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400"
+                                                className="text-base md:text-lg font-black text-slate-800 dark:text-white leading-tight cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                                                 onClick={() => {
                                                     if (isForeign) {
                                                         switchProject(task.projectId);
@@ -208,45 +213,45 @@ const FocusPanel: React.FC = () => {
                                                         if(isForeign) switchProject(task.projectId);
                                                         setTimeout(() => setReadingTask({ branchId: task.branchId, taskId: task.id }), isForeign ? 150 : 0);
                                                     }}
-                                                    className="text-slate-400 hover:text-indigo-500"
+                                                    className="mt-0.5 text-slate-400 hover:text-indigo-500 transition-colors shrink-0"
                                                 >
-                                                    <FileText className="w-4 h-4" />
+                                                    <FileText className="w-4 h-4 md:w-5 h-5" />
                                                 </button>
                                             )}
                                         </div>
                                         
-                                        <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                                             {showAllProjects && (
-                                                <span className="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 px-1.5 py-0.5 rounded">
-                                                    <Folder className="w-3 h-3" /> {task.projectName}
+                                                <span className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">
+                                                    <Folder className="w-3 h-3 text-indigo-500" /> {task.projectName}
                                                 </span>
                                             )}
                                             <span 
-                                                className="flex items-center gap-1 hover:text-indigo-500 cursor-pointer"
+                                                className="flex items-center gap-1 hover:text-indigo-500 cursor-pointer transition-colors"
                                                 onClick={() => {
                                                     if (isForeign) switchProject(task.projectId);
                                                     setTimeout(() => selectBranch(task.branchId), isForeign ? 150 : 0);
                                                 }}
                                             >
-                                                <ArrowRight className="w-3 h-3" /> {task.branchTitle}
+                                                <ArrowRight className="w-3 h-3 text-amber-500" /> {task.branchTitle}
                                             </span>
                                             
                                             {task.dueDate && (
                                                 <span className={`flex items-center gap-1 ${new Date(task.dueDate) < new Date() ? 'text-red-500' : 'text-amber-600'}`}>
                                                     <Star className="w-3 h-3 fill-current" /> 
-                                                    Scad: {new Date(task.dueDate).toLocaleDateString()}
+                                                    {new Date(task.dueDate).toLocaleDateString()}
                                                 </span>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* Persona Vista per Intero */}
+                                    {/* Responsabile */}
                                     {assignee && (
-                                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 w-fit">
-                                            <Avatar person={assignee} size="md" className="ring-2 ring-white dark:ring-slate-800 shadow-sm" />
-                                            <div className="flex flex-col leading-tight">
-                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Responsabile</span>
-                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{assignee.name}</span>
+                                        <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-900/50 p-2 md:p-3 rounded-xl border border-slate-100 dark:border-slate-800 w-fit">
+                                            <Avatar person={assignee} size="sm" className="ring-2 ring-white dark:ring-slate-800 shadow-sm" />
+                                            <div className="flex flex-col leading-none">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Responsabile</span>
+                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{assignee.name}</span>
                                             </div>
                                         </div>
                                     )}
@@ -257,46 +262,46 @@ const FocusPanel: React.FC = () => {
                 </div>
             ) : (
                 <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-4">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex gap-2 w-full sm:w-auto">
                             <button 
                                 onClick={copyMarkdown}
-                                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-black uppercase flex items-center gap-2 hover:bg-slate-200"
+                                className="flex-1 sm:flex-none px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 hover:bg-slate-200 transition-all"
                             >
-                                <Copy className="w-3 h-3" /> Markdown
+                                <Copy className="w-3.5 h-3.5" /> Markdown
                             </button>
                             <button 
                                 onClick={copyRichText}
-                                className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase flex items-center gap-2 hover:bg-indigo-700 shadow-sm"
+                                className="flex-1 sm:flex-none px-3 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-sm transition-all"
                             >
-                                <Layout className="w-3 h-3" /> Rich Text
+                                <Layout className="w-3.5 h-3.5" /> Rich Text
                             </button>
                         </div>
 
-                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg w-full sm:w-auto">
                             <button 
                                 onClick={() => setRenderType('markdown')}
-                                className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all ${renderType === 'markdown' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+                                className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all ${renderType === 'markdown' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-400'}`}
                             >
-                                SOURCE (MD)
+                                SOURCE
                             </button>
                             <button 
                                 onClick={() => setRenderType('richtext')}
-                                className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all ${renderType === 'richtext' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+                                className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all ${renderType === 'richtext' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-400'}`}
                             >
-                                PREVIEW (RICH)
+                                PREVIEW
                             </button>
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm min-h-[400px]">
+                    <div className="bg-white dark:bg-slate-800 p-4 md:p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm min-h-[400px]">
                         {renderType === 'markdown' ? (
-                            <pre className="text-xs font-mono text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words leading-relaxed">
+                            <pre className="text-xs font-mono text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words leading-relaxed overflow-x-auto">
                                 {renderedMarkdown}
                             </pre>
                         ) : (
-                            <div ref={previewRef}>
-                                <Markdown content={renderedMarkdown} className="prose-lg dark:prose-invert" />
+                            <div ref={previewRef} className="overflow-x-auto">
+                                <Markdown content={renderedMarkdown} className="prose-sm md:prose-lg dark:prose-invert" />
                             </div>
                         )}
                     </div>
