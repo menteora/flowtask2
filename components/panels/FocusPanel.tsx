@@ -4,7 +4,7 @@ import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
 import { Branch } from '../../types';
-import { Target, Star, CheckSquare, Square, ArrowRight, Folder, Pin, FileText, LayoutGrid, FileText as FileTextIcon, Eye, Copy, Layout } from 'lucide-react';
+import { Target, Star, CheckSquare, Square, ArrowRight, Folder, Pin, FileText, LayoutGrid, FileText as FileTextIcon, Eye, Copy, Layout, X } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import Markdown from '../ui/Markdown';
 
@@ -146,101 +146,110 @@ const FocusPanel: React.FC = () => {
                     </p>
                 </div>
             ) : viewMode === 'cards' ? (
-                <div className="grid gap-4">
+                <div className="grid gap-6">
                     {pinnedTasks.map(task => {
                         const isForeign = task.projectId !== state.id;
                         const project = projects.find(p => p.id === task.projectId);
                         const assignee = project?.people.find(p => p.id === task.assigneeId);
 
                         return (
-                            <div key={task.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center gap-4 group transition-all hover:border-amber-300 dark:hover:border-amber-700">
+                            <div key={task.id} className="relative bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700 flex items-start gap-4 transition-all hover:border-amber-400 dark:hover:border-amber-600 group">
+                                {/* Unpin Rapido (In alto a destra) */}
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isForeign) {
+                                            switchProject(task.projectId);
+                                            showNotification(`Passaggio a ${task.projectName} per rimuovere il focus...`, "success");
+                                        } else {
+                                            updateTask(task.branchId, task.id, { pinned: false });
+                                        }
+                                    }}
+                                    className="absolute -top-3 -right-3 p-2 bg-white dark:bg-slate-700 text-amber-500 rounded-full shadow-lg border border-slate-100 dark:border-slate-600 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-all active:scale-90 z-10"
+                                    title="Togli dal Focus"
+                                >
+                                    <Pin className="w-5 h-5 fill-current" />
+                                </button>
+
                                 <button 
                                     onClick={() => {
                                         if (isForeign) {
                                             switchProject(task.projectId);
+                                            showNotification(`Passaggio a ${task.projectName}...`, "success");
                                         } else {
                                             updateTask(task.branchId, task.id, { completed: true });
                                         }
                                     }}
-                                    className={`shrink-0 ${isForeign ? 'text-slate-300 dark:text-slate-600' : 'text-slate-300 hover:text-green-500 dark:text-slate-600 dark:hover:text-green-400'} transition-colors`}
+                                    className={`mt-1 shrink-0 ${isForeign ? 'text-slate-300 dark:text-slate-600' : 'text-slate-300 hover:text-green-500 dark:text-slate-600 dark:hover:text-green-400'} transition-colors`}
                                 >
-                                    <Square className="w-6 h-6" />
+                                    <Square className="w-7 h-7" />
                                 </button>
 
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <h3 
-                                            className="font-bold text-slate-800 dark:text-white truncate cursor-pointer hover:underline"
-                                            onClick={() => {
-                                                if (isForeign) {
-                                                    switchProject(task.projectId);
-                                                    setTimeout(() => setEditingTask({ branchId: task.branchId, taskId: task.id }), 100);
-                                                } else {
-                                                    setEditingTask({ branchId: task.branchId, taskId: task.id });
-                                                }
-                                            }}
-                                        >
-                                            {task.title}
-                                        </h3>
-                                        {task.description && task.description.trim() !== '' && (
-                                            <button 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if(isForeign) switchProject(task.projectId);
-                                                    setTimeout(() => setReadingTask({ branchId: task.branchId, taskId: task.id }), isForeign ? 100 : 0);
+                                    <div className="flex flex-col gap-1 mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <h3 
+                                                className="text-lg font-black text-slate-800 dark:text-white truncate cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400"
+                                                onClick={() => {
+                                                    if (isForeign) {
+                                                        switchProject(task.projectId);
+                                                        setTimeout(() => setEditingTask({ branchId: task.branchId, taskId: task.id }), 150);
+                                                    } else {
+                                                        setEditingTask({ branchId: task.branchId, taskId: task.id });
+                                                    }
                                                 }}
-                                                className="text-slate-400 hover:text-indigo-500"
                                             >
-                                                <FileText className="w-3.5 h-3.5" />
-                                            </button>
-                                        )}
-                                        {showAllProjects && (
-                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 px-2 py-0.5 rounded-full flex items-center gap-1 border border-slate-200 dark:border-slate-600">
-                                                <Folder className="w-3 h-3" /> {task.projectName}
-                                            </span>
-                                        )}
-                                    </div>
-                                    
-                                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                                        <span 
-                                            className="flex items-center gap-1 hover:text-indigo-500 cursor-pointer"
-                                            onClick={() => {
-                                                if (isForeign) switchProject(task.projectId);
-                                                setTimeout(() => selectBranch(task.branchId), isForeign ? 100 : 0);
-                                            }}
-                                        >
-                                            <ArrowRight className="w-3 h-3" /> {task.branchTitle}
-                                        </span>
+                                                {task.title}
+                                            </h3>
+                                            {task.description && task.description.trim() !== '' && (
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if(isForeign) switchProject(task.projectId);
+                                                        setTimeout(() => setReadingTask({ branchId: task.branchId, taskId: task.id }), isForeign ? 150 : 0);
+                                                    }}
+                                                    className="text-slate-400 hover:text-indigo-500"
+                                                >
+                                                    <FileText className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
                                         
-                                        {task.dueDate && (
-                                            <span className={`flex items-center gap-1 ${new Date(task.dueDate) < new Date() ? 'text-red-500 font-bold' : 'text-amber-600'}`}>
-                                                <Star className="w-3 h-3" /> 
-                                                Scad: {new Date(task.dueDate).toLocaleDateString()}
+                                        <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                                            {showAllProjects && (
+                                                <span className="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 px-1.5 py-0.5 rounded">
+                                                    <Folder className="w-3 h-3" /> {task.projectName}
+                                                </span>
+                                            )}
+                                            <span 
+                                                className="flex items-center gap-1 hover:text-indigo-500 cursor-pointer"
+                                                onClick={() => {
+                                                    if (isForeign) switchProject(task.projectId);
+                                                    setTimeout(() => selectBranch(task.branchId), isForeign ? 150 : 0);
+                                                }}
+                                            >
+                                                <ArrowRight className="w-3 h-3" /> {task.branchTitle}
                                             </span>
-                                        )}
+                                            
+                                            {task.dueDate && (
+                                                <span className={`flex items-center gap-1 ${new Date(task.dueDate) < new Date() ? 'text-red-500' : 'text-amber-600'}`}>
+                                                    <Star className="w-3 h-3 fill-current" /> 
+                                                    Scad: {new Date(task.dueDate).toLocaleDateString()}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="flex items-center gap-3 justify-between md:justify-end border-t md:border-t-0 border-slate-100 dark:border-slate-700 pt-3 md:pt-0">
+                                    {/* Persona Vista per Intero */}
                                     {assignee && (
-                                        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 px-2 py-1 rounded-full">
-                                            <Avatar person={assignee} size="sm" />
-                                            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{assignee.name}</span>
+                                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 w-fit">
+                                            <Avatar person={assignee} size="md" className="ring-2 ring-white dark:ring-slate-800 shadow-sm" />
+                                            <div className="flex flex-col leading-tight">
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Responsabile</span>
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{assignee.name}</span>
+                                            </div>
                                         </div>
                                     )}
-                                    
-                                    <button 
-                                        onClick={() => {
-                                            if (isForeign) {
-                                                switchProject(task.projectId);
-                                            } else {
-                                                updateTask(task.branchId, task.id, { pinned: false });
-                                            }
-                                        }}
-                                        className="p-2 text-amber-500 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 rounded-full transition-colors"
-                                    >
-                                        <Pin className="w-4 h-4 fill-current" />
-                                    </button>
                                 </div>
                             </div>
                         );

@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useProject } from '../../context/ProjectContext';
+import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
 import { X, Copy, FileText, Layout, Eye, Check, FileOutput } from 'lucide-react';
 import { Branch } from '../../types';
@@ -8,7 +9,9 @@ import Markdown from '../ui/Markdown';
 
 const ReportGenerator: React.FC = () => {
   const { state, projects, showNotification } = useProject();
-  const { reportUserId, setReportUserId, showAllProjects } = useTask();
+  // Fix: showAllProjects is provided by useBranch, not useTask
+  const { showAllProjects } = useBranch();
+  const { reportUserId, setReportUserId } = useTask();
   
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'preview' | 'markdown'>('preview');
