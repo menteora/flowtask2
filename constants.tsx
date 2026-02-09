@@ -3,6 +3,8 @@ import { BranchStatus, ProjectState, Person } from './types';
 import { Users, AlertCircle, CheckCircle2, XCircle, Clock, Map } from 'lucide-react';
 import React from 'react';
 
+export const VERSION = '1.0.3';
+
 export const INITIAL_PEOPLE: Person[] = [];
 
 /**

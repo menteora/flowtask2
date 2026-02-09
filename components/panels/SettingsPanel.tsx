@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useTask } from '../../context/TaskContext';
 import { 
-  Database, Download, Key, Cloud, Loader2, LogOut, Upload, Trash2, RefreshCw, FileJson, Terminal, Check, Copy, Wifi, WifiOff, MessageSquare, Settings as SettingsIcon, FileDown, Target, Info
+  Database, Download, Key, Cloud, Loader2, LogOut, Upload, Trash2, RefreshCw, FileJson, Terminal, Check, Copy, Wifi, WifiOff, MessageSquare, Settings as SettingsIcon, FileDown, Target, Info, AlertTriangle, X
 } from 'lucide-react';
 
 const SettingsPanel: React.FC = () => {
@@ -27,6 +27,8 @@ const SettingsPanel: React.FC = () => {
   const [remoteProjects, setRemoteProjects] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
+  
+  const [deletingCloudProjectId, setDeletingCloudProjectId] = useState<string | null>(null);
 
   useEffect(() => {
       if (session && activeTab === 'cloud') {
@@ -50,7 +52,7 @@ const SettingsPanel: React.FC = () => {
       setIsLoadingList(true);
       try {
           const list = await listProjectsFromSupabase();
-          setRemoteProjects(list);
+          setRemoteProjects(list || []);
       } finally { setIsLoadingList(false); }
   };
 
@@ -65,6 +67,17 @@ const SettingsPanel: React.FC = () => {
           showNotification("Errore durante il caricamento.", 'error');
       } finally {
           setIsUploading(false);
+      }
+  };
+
+  const handleDeleteCloudProject = async (id: string) => {
+      try {
+          await deleteProjectFromSupabase(id);
+          showNotification("Progetto rimosso dal cloud.", "success");
+          setDeletingCloudProjectId(null);
+          handleListProjects();
+      } catch (err) {
+          showNotification("Errore durante la rimozione cloud.", "error");
       }
   };
 
@@ -252,15 +265,40 @@ CREATE INDEX idx_flowtask_people_project_id ON public.flowtask_people (project_i
                                   <p className="text-xs text-slate-400 italic text-center py-4">Nessun progetto trovato nel cloud.</p>
                               ) : (
                                   remoteProjects.map(proj => (
-                                      <div key={proj.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 hover:bg-white dark:hover:bg-slate-700 transition-colors group">
-                                          <div>
-                                              <p className="text-xs font-black text-slate-700 dark:text-slate-200">{proj.name}</p>
-                                              <p className="text-[9px] text-slate-400 uppercase font-bold">{new Date(proj.updated_at).toLocaleDateString()}</p>
+                                      <div key={proj.id} className="flex flex-col gap-2 p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 hover:bg-white dark:hover:bg-slate-700 transition-colors group">
+                                          <div className="flex items-center justify-between">
+                                              <div>
+                                                  <p className="text-xs font-black text-slate-700 dark:text-slate-200">{proj.name}</p>
+                                                  <p className="text-[9px] text-slate-400 uppercase font-bold">{new Date(proj.updated_at).toLocaleDateString()}</p>
+                                              </div>
+                                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                  <button onClick={() => downloadProjectFromSupabase(proj.id)} className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 rounded-lg" title="Scarica"><Download className="w-4 h-4" /></button>
+                                                  <button onClick={() => setDeletingCloudProjectId(proj.id)} className="p-2 text-slate-300 hover:text-red-500" title="Elimina"><Trash2 className="w-4 h-4" /></button>
+                                              </div>
                                           </div>
-                                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                              <button onClick={() => downloadProjectFromSupabase(proj.id)} className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 rounded-lg" title="Scarica"><Download className="w-4 h-4" /></button>
-                                              <button onClick={() => deleteProjectFromSupabase(proj.id).then(handleListProjects)} className="p-2 text-slate-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-                                          </div>
+                                          
+                                          {deletingCloudProjectId === proj.id && (
+                                              <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/40 border border-red-200 dark:border-red-800 rounded-lg animate-in zoom-in-95 flex flex-col items-center gap-2">
+                                                  <div className="flex items-center gap-2 text-red-700 dark:text-red-300">
+                                                      <AlertTriangle className="w-4 h-4" />
+                                                      <p className="text-[10px] font-black uppercase tracking-tight">Eliminare definitivamente dal Cloud?</p>
+                                                  </div>
+                                                  <div className="flex gap-2 w-full">
+                                                      <button 
+                                                          onClick={() => setDeletingCloudProjectId(null)}
+                                                          className="flex-1 py-1.5 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-900 text-slate-600 dark:text-slate-300 rounded text-[10px] font-bold"
+                                                      >
+                                                          Annulla
+                                                      </button>
+                                                      <button 
+                                                          onClick={() => handleDeleteCloudProject(proj.id)}
+                                                          className="flex-1 py-1.5 bg-red-600 text-white rounded text-[10px] font-bold shadow-sm"
+                                                      >
+                                                          Sì, Elimina
+                                                      </button>
+                                                  </div>
+                                              </div>
+                                          )}
                                       </div>
                                   ))
                               )}

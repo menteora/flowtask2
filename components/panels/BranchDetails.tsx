@@ -5,7 +5,7 @@ import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
 import { BranchStatus, Branch, Person, BranchType } from '../../types';
 import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
-import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash, Palette, Folder, Compass } from 'lucide-react';
+import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash, Palette, Folder, Compass, Copy } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import DatePicker from '../ui/DatePicker';
 import Markdown from '../ui/Markdown';
@@ -17,7 +17,7 @@ const BranchDetails: React.FC = () => {
   } = useProject();
   
   const { selectedBranchId, selectBranch, updateBranch, deleteBranch, linkBranch, unlinkBranch, toggleBranchArchive } = useBranch();
-  const { addTask, updateTask, moveTask, deleteTask, bulkUpdateTasks, bulkMoveTasks, setEditingTask, setReadingTask, showOnlyOpen } = useTask();
+  const { addTask, duplicateTask, updateTask, moveTask, deleteTask, bulkUpdateTasks, bulkMoveTasks, setEditingTask, setReadingTask, showOnlyOpen } = useTask();
   
   const branch = selectedBranchId ? state.branches[selectedBranchId] : null;
   const [localTitle, setLocalTitle] = useState('');
@@ -488,6 +488,13 @@ const BranchDetails: React.FC = () => {
                                     )}
                                 </div>
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); duplicateTask(branch.id, task.id); }}
+                                        className="p-1 text-slate-300 hover:text-indigo-500"
+                                        title="Duplica Task"
+                                    >
+                                        <Copy className="w-3.5 h-3.5" />
+                                    </button>
                                     {!task.completed && (
                                         <div className="flex flex-col mr-1">
                                             <button 

@@ -25,6 +25,7 @@ interface TaskContextType {
 
   // Actions
   addTask: (branchId: string, title: string) => void;
+  duplicateTask: (branchId: string, taskId: string) => void;
   updateTask: (branchId: string, taskId: string, updates: Partial<Task>) => void;
   deleteTask: (branchId: string, taskId: string) => void;
   moveTask: (branchId: string, taskId: string, direction: 'up' | 'down') => void;
