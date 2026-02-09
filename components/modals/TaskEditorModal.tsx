@@ -2,15 +2,15 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useTask } from '../../context/TaskContext';
-import { X, Calendar, User, Trash2, CheckSquare, Square, Save, ArrowRight, Bold, Italic, List, Link as LinkIcon, Mail, Check, Eye, Edit2, Pin, CalendarDays, CheckCircle2, CornerDownRight, UserX } from 'lucide-react';
+import { X, Calendar, User, Trash2, CheckSquare, Square, Save, ArrowRight, Bold, Italic, List, Link as LinkIcon, Mail, Check, Eye, Edit2, Pin, CalendarDays, CheckCircle2, CornerDownRight, UserX, Copy } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import { Branch, Person } from '../../types';
 import DatePicker from '../ui/DatePicker';
 import Markdown from '../ui/Markdown';
 
 const TaskEditorModal: React.FC = () => {
-  const { state } = useProject();
-  const { editingTask, setEditingTask, updateTask, deleteTask, moveTaskToBranch } = useTask();
+  const { state, showNotification } = useProject();
+  const { editingTask, setEditingTask, updateTask, deleteTask, moveTaskToBranch, duplicateTask } = useTask();
 
   const [isVisible, setIsVisible] = useState(false);
   const [title, setTitle] = useState('');
@@ -129,6 +129,13 @@ const TaskEditorModal: React.FC = () => {
           completedAt: finalCompletedAt,
           pinned
       });
+      handleClose();
+  };
+
+  const handleDuplicate = () => {
+      if (!editingTask) return;
+      duplicateTask(editingTask.branchId, editingTask.taskId);
+      showNotification("Task duplicato!", "success");
       handleClose();
   };
 
@@ -426,12 +433,22 @@ const TaskEditorModal: React.FC = () => {
         </div>
 
         <div className="p-4 border-t border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/30 rounded-b-xl flex justify-between gap-3 flex-shrink-0">
-            <button 
-                onClick={() => setShowDeleteConfirm(true)}
-                className="px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-            >
-                <Trash2 className="w-4 h-4" /> <span className="hidden sm:inline">Elimina</span>
-            </button>
+            <div className="flex gap-1">
+                <button 
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    title="Elimina"
+                >
+                    <Trash2 className="w-5 h-5" />
+                </button>
+                <button 
+                    onClick={handleDuplicate}
+                    className="p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+                    title="Duplica"
+                >
+                    <Copy className="w-5 h-5" />
+                </button>
+            </div>
             <div className="flex gap-2">
                 <button 
                     onClick={handleClose}

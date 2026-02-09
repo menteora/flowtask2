@@ -34,6 +34,48 @@ export const useTaskActions = (
     }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
+  const duplicateTask = useCallback(async (branchId: string, taskId: string) => {
+    setProjects((prev: ProjectState[]) => prev.map(p => {
+        if (p.id !== activeProjectId) return p;
+        const branch = p.branches[branchId];
+        if (!branch) return p;
+
+        const originalTask = branch.tasks.find(t => t.id === taskId);
+        if (!originalTask) return p;
+
+        // Logica titolo intelligente: gestisce (1), (2), (3)...
+        const titleRegex = /^(.*) \((\d+)\)$/;
+        const match = originalTask.title.match(titleRegex);
+        let newTitle = "";
+        
+        if (match) {
+            const baseTitle = match[1];
+            const num = parseInt(match[2], 10);
+            newTitle = `${baseTitle} (${num + 1})`;
+        } else {
+            newTitle = `${originalTask.title} (1)`;
+        }
+
+        const newTask: Task = {
+            ...originalTask,
+            id: crypto.randomUUID(),
+            title: newTitle,
+            completed: false, // La copia è sempre aperta
+            completedAt: undefined,
+            position: branch.tasks.length,
+            version: 1,
+            updatedAt: new Date().toISOString()
+        };
+
+        const updatedBranch = { ...branch, tasks: [...branch.tasks, newTask] };
+        const updatedBranches = { ...p.branches, [branchId]: updatedBranch };
+        const newState = { ...p, branches: updatedBranches };
+        
+        persistenceService.saveTask(branchId, newTask, isOfflineMode, supabaseClient, newState);
+        return newState;
+    }));
+  }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
+
   const updateTask = useCallback(async (branchId: string, taskId: string, updates: Partial<Task>) => {
     setProjects((prev: ProjectState[]) => {
         const projectIndex = prev.findIndex(p => p.id === activeProjectId);
@@ -255,5 +297,5 @@ export const useTaskActions = (
       }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
-  return { addTask, updateTask, deleteTask, moveTask, moveTaskToBranch, bulkUpdateTasks, bulkMoveTasks };
+  return { addTask, duplicateTask, updateTask, deleteTask, moveTask, moveTaskToBranch, bulkUpdateTasks, bulkMoveTasks };
 };
