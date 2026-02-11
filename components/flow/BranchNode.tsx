@@ -21,12 +21,12 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
   const [isTasksExpanded, setIsTasksExpanded] = useState(false);
   const branch = state.branches[branchId];
   
-  const isInactive = branch?.status === BranchStatus.CLOSED || branch?.status === BranchStatus.CANCELLED;
+  const isInactive = branch?.status === BranchStatus.CLOSED || branch?.status === BranchStatus.CANCELLED || branch?.status === BranchStatus.STANDBY;
   const [isDetailsOpen, setIsDetailsOpen] = useState(!isInactive);
 
   useEffect(() => {
       if (branch) {
-        const inactive = branch.status === BranchStatus.CLOSED || branch.status === BranchStatus.CANCELLED;
+        const inactive = branch.status === BranchStatus.CLOSED || branch.status === BranchStatus.CANCELLED || branch.status === BranchStatus.STANDBY;
         setIsDetailsOpen(!inactive);
       }
   }, [branch?.status]);
