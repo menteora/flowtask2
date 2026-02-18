@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useTask } from '../../context/TaskContext';
@@ -115,7 +114,7 @@ const TaskEditorModal: React.FC = () => {
   const handleSave = () => {
       if (!editingTask || !title.trim()) return;
       
-      let finalCompletedAt = undefined;
+      let finalCompletedAt: any = null;
       if (completed) {
           finalCompletedAt = completedAt ? new Date(completedAt).toISOString() : new Date().toISOString();
       }
@@ -123,8 +122,8 @@ const TaskEditorModal: React.FC = () => {
       updateTask(editingTask.branchId, editingTask.taskId, {
           title: title.trim(),
           description: description,
-          assigneeId: assigneeId || undefined,
-          dueDate: dueDate || undefined,
+          assigneeId: assigneeId || null,
+          dueDate: dueDate || null,
           completed,
           completedAt: finalCompletedAt,
           pinned

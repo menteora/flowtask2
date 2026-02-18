@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { Task, ProjectState, BranchStatus } from '../types';
 import { persistenceService } from '../services/persistence';
@@ -10,6 +9,7 @@ export const useTaskActions = (
   supabaseClient: any,
   userId?: string
 ) => {
+  // Add task to a specific branch
   const addTask = useCallback(async (branchId: string, title: string) => {
     setProjects((prev: ProjectState[]) => prev.map(p => {
         if (p.id !== activeProjectId) return p;
@@ -34,6 +34,7 @@ export const useTaskActions = (
     }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
+  // Duplicate an existing task with smart title suffix handling
   const duplicateTask = useCallback(async (branchId: string, taskId: string) => {
     setProjects((prev: ProjectState[]) => prev.map(p => {
         if (p.id !== activeProjectId) return p;
@@ -76,6 +77,7 @@ export const useTaskActions = (
     }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
+  // Update a task and handle auto-activation of branches if a task is completed
   const updateTask = useCallback(async (branchId: string, taskId: string, updates: Partial<Task>) => {
     setProjects((prev: ProjectState[]) => {
         const projectIndex = prev.findIndex(p => p.id === activeProjectId);
@@ -91,7 +93,6 @@ export const useTaskActions = (
         const updatedTasks = branch.tasks.map(t => {
             if (t.id === taskId) {
                 const finalUpdates = { ...updates };
-                const isNowCompleted = updates.completed === true && !t.completed;
 
                 if (updates.completed !== undefined && updates.completed !== t.completed) {
                     if (updates.completed) {
@@ -109,7 +110,7 @@ export const useTaskActions = (
                             };
                         }
                     } else {
-                        finalUpdates.completedAt = undefined;
+                        finalUpdates.completedAt = null;
                     }
                 }
 
@@ -141,7 +142,7 @@ export const useTaskActions = (
         };
 
         // Persistenza Task
-        persistenceService.saveTask(branchId, taskToSave, isOfflineMode, supabaseClient, newProjectState);
+        persistenceService.saveTask(branchId, taskToSave as Task, isOfflineMode, supabaseClient, newProjectState);
         
         // Persistenza Ramo (se attivato automaticamente)
         if (branchToUpdate) {
@@ -154,6 +155,7 @@ export const useTaskActions = (
     });
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
+  // Remove a task from its branch
   const deleteTask = useCallback(async (branchId: string, taskId: string) => {
     setProjects((prev: ProjectState[]) => prev.map(p => {
         if (p.id !== activeProjectId) return p;
@@ -168,6 +170,7 @@ export const useTaskActions = (
     }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
+  // Reorder tasks within a branch
   const moveTask = useCallback(async (branchId: string, taskId: string, direction: 'up' | 'down') => {
       setProjects((prev: ProjectState[]) => prev.map(p => {
           if (p.id !== activeProjectId) return p;
@@ -196,6 +199,7 @@ export const useTaskActions = (
       }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
+  // Move a task to a different branch
   const moveTaskToBranch = useCallback(async (taskId: string, sourceBranchId: string, targetBranchId: string) => {
       setProjects((prev: ProjectState[]) => prev.map(p => {
           if (p.id !== activeProjectId) return p;
@@ -230,6 +234,7 @@ export const useTaskActions = (
       }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
+  // Batch update task titles from a multi-line string
   const bulkUpdateTasks = useCallback(async (branchId: string, text: string) => {
       const titles = text.split('\n').filter(t => t.trim().length > 0);
       setProjects((prev: ProjectState[]) => prev.map(p => {
@@ -264,6 +269,7 @@ export const useTaskActions = (
       }));
   }, [activeProjectId, isOfflineMode, supabaseClient, setProjects]);
 
+  // Move multiple tasks to another branch at once
   const bulkMoveTasks = useCallback(async (taskIds: string[], sourceBranchId: string, targetBranchId: string) => {
       setProjects((prev: ProjectState[]) => prev.map(p => {
           if (p.id !== activeProjectId) return p;
