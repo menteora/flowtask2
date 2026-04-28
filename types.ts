@@ -28,6 +28,7 @@ export interface Task {
   dueDate?: string; 
   completed: boolean;
   completedAt?: string; 
+  cost?: number;
   position?: number; 
   pinned?: boolean; 
   version: number;
@@ -49,6 +50,7 @@ export interface Branch {
   tasks: Task[];
   parentIds: string[]; 
   archived?: boolean;
+  propagateCost?: boolean;
   collapsed?: boolean; 
   position?: number;
   version: number;

@@ -39,6 +39,7 @@ export const persistenceService = {
         end_date: branch.endDate,
         due_date: branch.dueDate,
         archived: branch.archived || false,
+        propagate_cost: branch.propagateCost || false,
         collapsed: branch.collapsed || false,
         sprint_counter: branch.sprintCounter || 1,
         parent_ids: branch.parentIds || [],
@@ -70,6 +71,7 @@ export const persistenceService = {
         due_date: task.dueDate,
         completed: task.completed,
         completed_at: task.completedAt,
+        cost: task.cost,
         position: task.position || 0,
         pinned: task.pinned || false,
         version: task.version
@@ -94,6 +96,7 @@ export const persistenceService = {
           due_date: task.dueDate,
           completed: task.completed,
           completed_at: task.completedAt,
+          cost: task.cost,
           position: task.position || 0,
           pinned: task.pinned || false,
           version: task.version
@@ -119,6 +122,7 @@ export const persistenceService = {
           due_date: task.dueDate,
           completed: task.completed,
           completed_at: task.completedAt,
+          cost: task.cost,
           position: task.position,
           pinned: task.pinned || false,
           version: task.version 

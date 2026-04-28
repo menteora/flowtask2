@@ -5,10 +5,12 @@ import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
 import { BranchStatus, Branch, Person, BranchType } from '../../types';
 import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
-import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash, Palette, Folder, Compass, Copy } from 'lucide-react';
+import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash, Palette, Folder, Compass, Copy, Banknote, TrendingUp, TrendingDown } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import DatePicker from '../ui/DatePicker';
 import Markdown from '../ui/Markdown';
+import { formatCost } from '../../lib/format';
+import { calculateBranchCost } from '../../lib/costCalculations';
 
 const BranchDetails: React.FC = () => {
   const { 
@@ -29,6 +31,7 @@ const BranchDetails: React.FC = () => {
   const [localStartDate, setLocalStartDate] = useState<string | undefined>(undefined);
   const [localDueDate, setLocalDueDate] = useState<string | undefined>(undefined);
   const [localSprintCounter, setLocalSprintCounter] = useState(1);
+  const [localPropagateCost, setLocalPropagateCost] = useState(false);
 
   const [isBulkMode, setIsBulkMode] = useState(false);
   const [bulkText, setBulkText] = useState('');
@@ -66,6 +69,7 @@ const BranchDetails: React.FC = () => {
       setLocalStartDate(branch.startDate);
       setLocalDueDate(branch.dueDate);
       setLocalSprintCounter(branch.sprintCounter || 1);
+      setLocalPropagateCost(branch.propagateCost || false);
       setBulkText(branch.tasks.map(t => t.title).join('\n'));
       
       setShowDeleteConfirm(false); setIsLinkMode(false); setIsMigrateMode(false);
@@ -96,8 +100,14 @@ const BranchDetails: React.FC = () => {
            localResponsibleId !== branch.responsibleId || 
            localStartDate !== branch.startDate || 
            localDueDate !== branch.dueDate || 
-           localSprintCounter !== (branch.sprintCounter || 1);
-  }, [branch, localTitle, localDescription, localStatus, localType, localColor, localResponsibleId, localStartDate, localDueDate, localSprintCounter]);
+           localSprintCounter !== (branch.sprintCounter || 1) ||
+           localPropagateCost !== (branch.propagateCost || false);
+  }, [branch, localTitle, localDescription, localStatus, localType, localColor, localResponsibleId, localStartDate, localDueDate, localSprintCounter, localPropagateCost]);
+
+  const branchCost = useMemo(() => {
+    if (!branch) return 0;
+    return calculateBranchCost(branch.id, state);
+  }, [branch, state]);
 
   const handleSaveAll = () => {
     if (!branch) return;
@@ -110,7 +120,8 @@ const BranchDetails: React.FC = () => {
       responsibleId: localResponsibleId, 
       startDate: localStartDate, 
       dueDate: localDueDate, 
-      sprintCounter: localSprintCounter 
+      sprintCounter: localSprintCounter,
+      propagateCost: localPropagateCost
     });
     showNotification("Modifiche salvate con successo.", "success");
   };
@@ -219,6 +230,12 @@ const BranchDetails: React.FC = () => {
                {localType === 'label' ? 'Etichetta' : (localType === 'sprint' ? 'Sprint Mode' : (localType === 'objective' ? 'Obiettivo' : 'Dettagli Ramo'))}
            </span>
            <input type="text" value={localTitle} onChange={(e) => setLocalTitle(e.target.value)} className="font-bold text-lg bg-transparent border-b border-transparent focus:border-indigo-500 outline-none w-full text-slate-900 dark:text-white" />
+        </div>
+        <div className="flex flex-col items-end mr-4">
+            <span className="text-[10px] font-black text-slate-400 uppercase">Totale Ramo</span>
+            <span className={`font-mono text-sm font-bold ${branchCost >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                {formatCost(branchCost)} €
+            </span>
         </div>
         <button onClick={() => selectBranch(null)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-500"><X className="w-5 h-5" /></button>
       </div>
@@ -356,6 +373,24 @@ const BranchDetails: React.FC = () => {
         </div>
 
         {/* Status & Responsabile */}
+        <div className="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl overflow-hidden shadow-sm p-3">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Banknote className="w-4 h-4 text-emerald-500" />
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Propaga costo al ramo padre</span>
+                </div>
+                <button 
+                    onClick={() => setLocalPropagateCost(!localPropagateCost)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${localPropagateCost ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+                >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${localPropagateCost ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+             </div>
+             <p className="mt-2 text-[10px] text-slate-400 leading-tight">
+                 Se attivo, il totale di questo ramo (task + rami figli abilitati) verrà sommato al totale del ramo padre.
+             </p>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase text-slate-400 pl-1">Stato</label>
@@ -479,12 +514,19 @@ const BranchDetails: React.FC = () => {
                         return (
                             <div key={task.id} className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl group hover:border-indigo-300 transition-colors">
                                 <button onClick={() => updateTask(branch.id, task.id, { completed: !task.completed })} className={task.completed ? 'text-green-500' : 'text-slate-300 dark:text-slate-500 hover:text-indigo-500'}>{task.completed ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}</button>
-                                <div className="flex-1 min-w-0 flex items-center gap-2">
-                                    <span onClick={() => setEditingTask({ branchId: branch.id, taskId: task.id })} className={`text-sm cursor-pointer break-words ${task.completed ? 'line-through text-slate-400' : 'font-medium text-slate-700 dark:text-slate-200'}`}>{task.title}</span>
-                                    {taskAssignee && (
-                                        <div className="shrink-0" title={`Assegnato a ${taskAssignee.name}`}>
-                                            <Avatar person={taskAssignee} size="sm" className="w-5 h-5 text-[8px]" />
-                                        </div>
+                                <div className="flex-1 min-w-0 flex items-center gap-2 justify-between">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span onClick={() => setEditingTask({ branchId: branch.id, taskId: task.id })} className={`text-sm cursor-pointer break-words truncate ${task.completed ? 'line-through text-slate-400' : 'font-medium text-slate-700 dark:text-slate-200'}`}>{task.title}</span>
+                                        {taskAssignee && (
+                                            <div className="shrink-0" title={`Assegnato a ${taskAssignee.name}`}>
+                                                <Avatar person={taskAssignee} size="sm" className="w-5 h-5 text-[8px]" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    {task.cost !== undefined && task.cost !== 0 && (
+                                        <span className={`text-[10px] font-mono font-bold shrink-0 px-1.5 py-0.5 rounded-md ${task.cost > 0 ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20' : 'text-red-700 bg-red-50 dark:bg-red-900/20'}`}>
+                                            {task.cost > 0 ? '+' : ''}{formatCost(task.cost)}
+                                        </span>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

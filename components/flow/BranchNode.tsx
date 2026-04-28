@@ -5,9 +5,11 @@ import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
 import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
-import { Plus, Calendar, Archive, FileText, ChevronDown, ChevronUp, GitMerge, Tag, Eye, CheckCircle2, Zap, RefreshCw, ChevronLeft, ChevronRight, CornerDownRight, Folder, Compass, Quote, ChevronsDown, ChevronsUp } from 'lucide-react';
+import { Plus, Calendar, Archive, FileText, ChevronDown, ChevronUp, GitMerge, Tag, Eye, CheckCircle2, Zap, RefreshCw, ChevronLeft, ChevronRight, CornerDownRight, Folder, Compass, Quote, ChevronsDown, ChevronsUp, Banknote } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import Markdown from '../ui/Markdown';
+import { formatCost } from '../../lib/format';
+import { calculateBranchCost } from '../../lib/costCalculations';
 
 interface BranchNodeProps {
   branchId: string;
@@ -90,6 +92,8 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
   const totalTasks = branch.tasks.length;
   const completedTasks = branch.tasks.filter(t => t.completed).length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+  const branchCost = useMemo(() => calculateBranchCost(branchId, state), [branchId, state]);
 
   const currentResp = branch.responsibleId && branch.responsibleId !== 'none' 
       ? state.people.find(p => p.id === branch.responsibleId) 
@@ -201,6 +205,11 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                         <span className={`font-black text-sm uppercase tracking-tight truncate ${isObjective ? 'text-cyan-700 dark:text-cyan-300' : 'text-slate-700 dark:text-slate-200'}`} title={branch.title}>
                             {branch.title}
                         </span>
+                        {branchCost !== 0 && (
+                            <span className={`text-[10px] font-mono font-bold px-1 rounded ${branchCost > 0 ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20' : 'text-red-700 bg-red-50 dark:bg-red-900/20'}`}>
+                                {formatCost(branchCost)}
+                            </span>
+                        )}
                     </div>
                     {(effectiveBranchResp || isResponsibleOrphan) && (
                         <div className={`shrink-0 ${!currentResp && !isResponsibleOrphan ? 'opacity-40 grayscale' : ''}`} title={isResponsibleOrphan ? 'Responsabile non trovato' : !currentResp ? `Ereditato: ${effectiveBranchResp?.name}` : undefined}>
@@ -267,10 +276,17 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
       >
         <div className={`p-3 border-b border-slate-100/50 dark:border-slate-700/50 flex justify-between items-start ${branch.archived ? 'bg-slate-50 dark:bg-slate-800' : ''} relative`}>
           <div className="flex flex-col gap-1 overflow-hidden flex-1 min-w-0 pr-1">
-             <h3 className="font-bold text-slate-800 dark:text-white truncate text-sm flex items-center gap-2" title={branch.title}>
-              {branch.title}
-              {branch.archived && <Archive className="w-3 h-3 text-slate-400" />}
-            </h3>
+             <div className="flex items-center justify-between gap-2">
+                 <h3 className="font-bold text-slate-800 dark:text-white truncate text-sm flex items-center gap-2" title={branch.title}>
+                  {branch.title}
+                  {branch.archived && <Archive className="w-3 h-3 text-slate-400" />}
+                </h3>
+                {branchCost !== 0 && (
+                    <span className={`text-[10px] font-mono font-bold px-1 rounded shrink-0 ${branchCost > 0 ? 'text-emerald-700 bg-emerald-100/50 dark:bg-emerald-900/20' : 'text-red-700 bg-red-100/50 dark:bg-red-900/20'}`}>
+                        {formatCost(branchCost)}
+                    </span>
+                )}
+             </div>
             
             <div className="flex flex-wrap gap-1 items-center">
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium w-fit ${statusConfig.color}`}>
@@ -343,6 +359,11 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                                     >
                                         {task.title}
                                     </span>
+                                    {task.cost !== undefined && task.cost !== 0 && (
+                                        <span className={`text-[8px] font-mono font-bold ml-1 ${task.cost > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                            ({formatCost(task.cost)})
+                                        </span>
+                                    )}
                                 </div>
 
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
