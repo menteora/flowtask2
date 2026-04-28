@@ -27,8 +27,26 @@ const SettingsPanel: React.FC = () => {
   const [remoteProjects, setRemoteProjects] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   const [deletingCloudProjectId, setDeletingCloudProjectId] = useState<string | null>(null);
+
+  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string);
+        loadProject(data);
+        showNotification("Progetto importato con successo.", "success");
+      } catch (err) {
+        showNotification("Errore durante l'importazione del file.", "error");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   useEffect(() => {
       if (session && activeTab === 'cloud') {
@@ -197,11 +215,15 @@ CREATE INDEX idx_flowtask_people_project_id ON public.flowtask_people (project_i
         </div>
         
         <div className="flex flex-wrap gap-2">
+            <input type="file" ref={fileInputRef} onChange={handleImportJSON} accept=".json" className="hidden" />
+            <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
+                <Upload className="w-4 h-4" /> Importa JSON
+            </button>
             <button onClick={exportActiveProjectToJSON} className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-bold flex items-center gap-2 border border-indigo-200 dark:border-indigo-800 shadow-sm hover:bg-indigo-100 transition-colors">
                 <FileDown className="w-4 h-4" /> Esporta Progetto ({state.name})
             </button>
             <button onClick={exportAllToJSON} className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm hover:bg-emerald-700 transition-colors">
-                <FileJson className="w-4 h-4" /> Esporta Tutto (JSON)
+                <FileJson className="w-4 h-4" /> Backup Totale
             </button>
             {isOfflineMode ? (
                 <button onClick={disableOfflineMode} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm">
