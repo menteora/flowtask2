@@ -107,7 +107,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
                  <span className={`font-medium text-xs truncate ${isSelected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-200'}`}>
                     {branch.title}
                  </span>
-                 {branchCost !== 0 && (
+                 {branchCost !== 0 && branchCost !== undefined && branchCost !== null && (
                     <span className={`text-[9px] font-mono font-bold shrink-0 ${branchCost > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                         {formatCost(branchCost)}
                     </span>
@@ -189,7 +189,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
                     <div className="flex-1 min-w-0 flex items-center justify-between cursor-pointer" onClick={() => setEditingTask({ branchId, taskId: task.id })}>
                         <span className={`text-[11px] break-words hover:text-indigo-600 dark:hover:text-indigo-400 ${task.completed ? 'line-through text-gray-400' : 'text-slate-600 dark:text-slate-300'}`}>
                             {task.title}
-                            {task.cost !== undefined && task.cost !== 0 && (
+                            {task.cost !== undefined && task.cost !== null && task.cost !== 0 && (
                                 <span className={`text-[9px] font-mono font-bold ml-1 ${task.cost > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                     ({formatCost(task.cost)})
                                 </span>

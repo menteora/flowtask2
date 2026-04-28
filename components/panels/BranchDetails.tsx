@@ -523,7 +523,7 @@ const BranchDetails: React.FC = () => {
                                             </div>
                                         )}
                                     </div>
-                                    {task.cost !== undefined && task.cost !== 0 && (
+                                    {task.cost !== undefined && task.cost !== null && task.cost !== 0 && (
                                         <span className={`text-[10px] font-mono font-bold shrink-0 px-1.5 py-0.5 rounded-md ${task.cost > 0 ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20' : 'text-red-700 bg-red-50 dark:bg-red-900/20'}`}>
                                             {task.cost > 0 ? '+' : ''}{formatCost(task.cost)}
                                         </span>

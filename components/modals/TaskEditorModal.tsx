@@ -69,7 +69,7 @@ const TaskEditorModal: React.FC = () => {
             setDueDate(task.dueDate || '');
             setCompleted(task.completed);
             setPinned(task.pinned || false);
-            setCost(task.cost !== undefined ? task.cost.toString().replace('.', ',') : '');
+            setCost(task.cost !== undefined && task.cost !== null ? task.cost.toString().replace('.', ',') : '');
             setTargetBranchId(''); 
             setIsPreviewMode(false); 
             setPopupMode(null);

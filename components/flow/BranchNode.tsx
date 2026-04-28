@@ -205,7 +205,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                         <span className={`font-black text-sm uppercase tracking-tight truncate ${isObjective ? 'text-cyan-700 dark:text-cyan-300' : 'text-slate-700 dark:text-slate-200'}`} title={branch.title}>
                             {branch.title}
                         </span>
-                        {branchCost !== 0 && (
+                        {branchCost !== 0 && branchCost !== undefined && branchCost !== null && (
                             <span className={`text-[10px] font-mono font-bold px-1 rounded ${branchCost > 0 ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20' : 'text-red-700 bg-red-50 dark:bg-red-900/20'}`}>
                                 {formatCost(branchCost)}
                             </span>
@@ -281,7 +281,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                   {branch.title}
                   {branch.archived && <Archive className="w-3 h-3 text-slate-400" />}
                 </h3>
-                {branchCost !== 0 && (
+                {branchCost !== 0 && branchCost !== undefined && branchCost !== null && (
                     <span className={`text-[10px] font-mono font-bold px-1 rounded shrink-0 ${branchCost > 0 ? 'text-emerald-700 bg-emerald-100/50 dark:bg-emerald-900/20' : 'text-red-700 bg-red-100/50 dark:bg-red-900/20'}`}>
                         {formatCost(branchCost)}
                     </span>
@@ -359,7 +359,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                                     >
                                         {task.title}
                                     </span>
-                                    {task.cost !== undefined && task.cost !== 0 && (
+                                    {task.cost !== undefined && task.cost !== null && task.cost !== 0 && (
                                         <span className={`text-[8px] font-mono font-bold ml-1 ${task.cost > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                             ({formatCost(task.cost)})
                                         </span>
