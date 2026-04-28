@@ -205,6 +205,15 @@ const App: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
+            <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full border border-transparent text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" title="Importa Progetto (JSON)">
+                <Upload className="w-4 h-4" />
+            </button>
+            <button onClick={handleExport} className="p-2 rounded-full border border-transparent text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all" title="Esporta Progetto (JSON)">
+                <Download className="w-4 h-4" />
+            </button>
+
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
+
             <button onClick={toggleShowOnlyOpen} className={`p-2 rounded-full border transition-all ${showOnlyOpen ? 'bg-indigo-100 text-indigo-600 border-indigo-200 shadow-inner' : 'text-slate-500 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="Solo Task Aperti"><CheckCircle2 className="w-4 h-4" /></button>
             <button onClick={toggleShowAllProjects} className={`p-2 rounded-full border transition-all ${showAllProjects ? 'bg-amber-100 text-amber-600 border-amber-200 shadow-inner' : 'text-slate-500 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="Tutti i Progetti"><Globe className="w-4 h-4" /></button>
             <button onClick={toggleShowArchived} className={`p-2 rounded-full border transition-all ${showArchived ? 'bg-indigo-100 text-indigo-600 border-indigo-200 shadow-inner' : 'text-slate-500 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="Mostra Archiviati"><Archive className="w-4 h-4" /></button>
