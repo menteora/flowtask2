@@ -130,6 +130,7 @@ export const supabaseService = {
         .map(t => ({
           id: t.id, title: t.title, description: t.description, completed: t.completed,
           completedAt: t.completed_at, assigneeId: t.assignee_id, dueDate: t.due_date, pinned: t.pinned || false,
+          cost: t.cost,
           position: t.position || 0, version: t.version || 1, updatedAt: t.updated_at
         }));
 
@@ -139,7 +140,7 @@ export const supabaseService = {
         type: (b.type || 'standard') as BranchType,
         tasks: bTasks, parentIds: b.parent_ids || [],
         startDate: b.start_date, endDate: b.end_date, dueDate: b.due_date,
-        archived: b.archived, collapsed: b.collapsed,
+        archived: b.archived, propagateCost: b.propagate_cost, collapsed: b.collapsed,
         sprintCounter: b.sprint_counter || 1,
         responsibleId: b.responsible_id, position: b.position || 0, version: b.version || 1, updatedAt: b.updated_at
       };
@@ -162,6 +163,7 @@ export const supabaseService = {
           id: b.id, title: b.title, description: b.description, status: b.status, color: b.color,
           type: b.type,
           start_date: b.startDate, end_date: b.endDate, due_date: b.dueDate, archived: b.archived,
+          propagate_cost: b.propagateCost || false,
           collapsed: b.collapsed, sprint_counter: b.sprintCounter || 1, 
           parent_ids: b.parentIds,
           responsible_id: b.responsibleId, position: b.position || 0, version: b.version
@@ -171,7 +173,9 @@ export const supabaseService = {
         // Fix: Use correct property names from Task type (assigneeId and completedAt)
         await this.upsertEntity(client, 'flowtask_tasks', {
           id: t.id, branch_id: b.id, title: t.title, description: t.description, assignee_id: t.assigneeId,
-          due_date: t.dueDate, completed: t.completed, completed_at: t.completedAt, position: t.position || 0, pinned: t.pinned || false, version: t.version
+          due_date: t.dueDate, completed: t.completed, completed_at: t.completedAt, 
+          cost: t.cost,
+          position: t.position || 0, pinned: t.pinned || false, version: t.version
         });
       }
     }

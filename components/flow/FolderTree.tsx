@@ -8,6 +8,8 @@ import { ChevronRight, ChevronDown, Plus, FileText, CheckSquare, Square, Archive
 import Avatar from '../ui/Avatar';
 import Markdown from '../ui/Markdown';
 import { Branch, BranchStatus } from '../../types';
+import { calculateBranchCost } from '../../lib/costCalculations';
+import { formatCost } from '../../lib/format';
 
 interface FolderNodeProps {
   branchId: string;
@@ -64,6 +66,8 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
   
   const isSelected = selectedBranchId === branchId;
   const statusConfig = STATUS_CONFIG[branch.status as BranchStatus] || STATUS_CONFIG[BranchStatus.PLANNED];
+  
+  const branchCost = useMemo(() => calculateBranchCost(branchId, state), [branchId, state]);
   const isOpen = !branch.collapsed;
 
   const isRootBranch = branch.parentIds.includes(state.id);
@@ -103,6 +107,11 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
                  <span className={`font-medium text-xs truncate ${isSelected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-200'}`}>
                     {branch.title}
                  </span>
+                 {branchCost !== 0 && (
+                    <span className={`text-[9px] font-mono font-bold shrink-0 ${branchCost > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {formatCost(branchCost)}
+                    </span>
+                 )}
                  {branch.type !== 'label' && branch.type !== 'objective' && (
                      <span className={`text-[8px] px-1.5 rounded-full border border-current opacity-70 ${statusConfig.color} bg-transparent font-black`}>
                         {branch.status}
@@ -180,6 +189,11 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
                     <div className="flex-1 min-w-0 flex items-center justify-between cursor-pointer" onClick={() => setEditingTask({ branchId, taskId: task.id })}>
                         <span className={`text-[11px] break-words hover:text-indigo-600 dark:hover:text-indigo-400 ${task.completed ? 'line-through text-gray-400' : 'text-slate-600 dark:text-slate-300'}`}>
                             {task.title}
+                            {task.cost !== undefined && task.cost !== 0 && (
+                                <span className={`text-[9px] font-mono font-bold ml-1 ${task.cost > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                    ({formatCost(task.cost)})
+                                </span>
+                            )}
                         </span>
                         <div className="flex items-center gap-2 shrink-0">
                             {task.assigneeId && <Avatar person={state.people.find(p => p.id === task.assigneeId)!} size="sm" className="w-4 h-4 text-[8px]" />}

@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useTask } from '../../context/TaskContext';
-import { X, Calendar, User, Trash2, CheckSquare, Square, Save, ArrowRight, Bold, Italic, List, Link as LinkIcon, Mail, Check, Eye, Edit2, Pin, CalendarDays, CheckCircle2, CornerDownRight, UserX, Copy } from 'lucide-react';
+import { X, Calendar, User, Trash2, CheckSquare, Square, Save, ArrowRight, Bold, Italic, List, Link as LinkIcon, Mail, Check, Eye, Edit2, Pin, CalendarDays, CheckCircle2, CornerDownRight, UserX, Copy, Banknote } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import { Branch, Person } from '../../types';
 import DatePicker from '../ui/DatePicker';
 import Markdown from '../ui/Markdown';
+import { formatCost, parseCostInput } from '../../lib/format';
 
 const TaskEditorModal: React.FC = () => {
   const { state, showNotification } = useProject();
@@ -19,6 +20,7 @@ const TaskEditorModal: React.FC = () => {
   const [completed, setCompleted] = useState(false);
   const [completedAt, setCompletedAt] = useState('');
   const [pinned, setPinned] = useState(false);
+  const [cost, setCost] = useState('');
   
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   
@@ -67,6 +69,7 @@ const TaskEditorModal: React.FC = () => {
             setDueDate(task.dueDate || '');
             setCompleted(task.completed);
             setPinned(task.pinned || false);
+            setCost(task.cost !== undefined ? task.cost.toString().replace('.', ',') : '');
             setTargetBranchId(''); 
             setIsPreviewMode(false); 
             setPopupMode(null);
@@ -126,7 +129,8 @@ const TaskEditorModal: React.FC = () => {
           dueDate: dueDate || null,
           completed,
           completedAt: finalCompletedAt,
-          pinned
+          pinned,
+          cost: parseCostInput(cost)
       });
       handleClose();
   };
@@ -404,6 +408,28 @@ const TaskEditorModal: React.FC = () => {
                     className="w-full text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500"
                     icon={<Calendar className="w-4 h-4 text-slate-400" />}
                 />
+            </div>
+
+            <div>
+                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Costo (€)</label>
+                 <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                        <Banknote className="w-4 h-4 text-slate-400" />
+                    </div>
+                    <input 
+                        type="text"
+                        value={cost}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            if (/^-?\d*([,]\d{0,2})?$/.test(val)) {
+                                setCost(val);
+                            }
+                        }}
+                        placeholder="0,00"
+                        className="w-full text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-2.5 pl-10 outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                 </div>
+                 <p className="text-[10px] text-slate-400 mt-1">Può essere positivo (+) o negativo (-). Separatore decimali: virgola.</p>
             </div>
             
             <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
