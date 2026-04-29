@@ -11,6 +11,7 @@ import DatePicker from '../ui/DatePicker';
 import Markdown from '../ui/Markdown';
 import { formatCost } from '../../lib/format';
 import { calculateBranchCost } from '../../lib/costCalculations';
+import { generateProjectMarkdown, downloadMarkdown } from '../../lib/markdownExport';
 
 const BranchDetails: React.FC = () => {
   const { 
@@ -108,6 +109,12 @@ const BranchDetails: React.FC = () => {
     if (!branch) return 0;
     return calculateBranchCost(branch.id, state);
   }, [branch, state]);
+
+  const handleExportMarkdown = () => {
+    if (!branch) return;
+    const md = generateProjectMarkdown(state, { showOnlyOpen, showArchived, startBranchId: branch.id });
+    downloadMarkdown(md, `flowtask_branch_${branch.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}`);
+  };
 
   const handleSaveAll = () => {
     if (!branch) return;
@@ -615,6 +622,10 @@ const BranchDetails: React.FC = () => {
 
         {/* Footer Actions */}
         <div className="pt-6 mt-6 border-t dark:border-slate-700 space-y-3">
+            <button onClick={handleExportMarkdown} className="flex items-center justify-center gap-2 w-full px-4 py-3 text-xs font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-xl hover:bg-indigo-100 transition-colors uppercase tracking-widest border border-indigo-100 dark:border-indigo-800">
+                <FileText className="w-4 h-4"/>
+                Esporta Ramo Markdown
+            </button>
             <button onClick={() => toggleBranchArchive(branch.id)} className="flex items-center justify-center gap-2 w-full px-4 py-3 text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 transition-colors uppercase tracking-widest">
                 {branch.archived ? <RefreshCw className="w-4 h-4"/> : <Archive className="w-4 h-4"/>}
                 {branch.archived ? 'Ripristina Ramo' : 'Archivia Ramo'}
