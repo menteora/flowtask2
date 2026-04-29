@@ -5,7 +5,8 @@ import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
 import { BranchStatus, Branch, Person, BranchType } from '../../types';
 import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
-import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash, Palette, Folder, Compass, Copy, Banknote, TrendingUp, TrendingDown } from 'lucide-react';
+import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash, Palette, Folder, Compass, Copy, Banknote, TrendingUp, TrendingDown, Pin } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import Avatar from '../ui/Avatar';
 import DatePicker from '../ui/DatePicker';
 import Markdown from '../ui/Markdown';
@@ -224,7 +225,14 @@ const BranchDetails: React.FC = () => {
     if (!branch) return [];
     let list = [...branch.tasks];
     if (showOnlyOpen) list = list.filter(t => !t.completed);
-    return list.sort((a, b) => a.completed === b.completed ? (a.position ?? 0) - (b.position ?? 0) : (a.completed ? 1 : -1));
+    return list.sort((a, b) => {
+        // Completion priority
+        if (a.completed !== b.completed) return a.completed ? 1 : -1;
+        // Pinned priority
+        if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+        // Manual position
+        return (a.position ?? 0) - (b.position ?? 0);
+    });
   }, [branch?.tasks, showOnlyOpen]);
 
   if (!branch) return null;
@@ -513,66 +521,96 @@ const BranchDetails: React.FC = () => {
                 <textarea value={bulkText} onChange={(e) => setBulkText(e.target.value)} onBlur={() => bulkUpdateTasks(branch.id, bulkText)} className="w-full h-48 p-3 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-slate-800 dark:text-slate-200" placeholder="Un task per riga..." />
             ) : (
                 <div className="space-y-2">
-                    {sortedTasks.map((task, idx) => {
-                        const taskAssignee = task.assigneeId ? state.people.find(p => p.id === task.assigneeId) : null;
-                        const canMoveUp = idx > 0 && sortedTasks[idx - 1].completed === task.completed;
-                        const canMoveDown = idx < sortedTasks.length - 1 && sortedTasks[idx + 1].completed === task.completed;
+                    <AnimatePresence initial={false}>
+                        {sortedTasks.map((task, idx) => {
+                            const taskAssignee = task.assigneeId ? state.people.find(p => p.id === task.assigneeId) : null;
+                            const canMoveUp = idx > 0 && sortedTasks[idx - 1].completed === task.completed && sortedTasks[idx - 1].pinned === task.pinned;
+                            const canMoveDown = idx < sortedTasks.length - 1 && sortedTasks[idx + 1].completed === task.completed && sortedTasks[idx + 1].pinned === task.pinned;
 
-                        return (
-                            <div key={task.id} className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl group hover:border-indigo-300 transition-colors">
-                                <button onClick={() => updateTask(branch.id, task.id, { completed: !task.completed })} className={task.completed ? 'text-green-500' : 'text-slate-300 dark:text-slate-500 hover:text-indigo-500'}>{task.completed ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}</button>
-                                <div className="flex-1 min-w-0 flex items-center gap-2 justify-between">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <span onClick={() => setEditingTask({ branchId: branch.id, taskId: task.id })} className={`text-sm cursor-pointer break-words truncate ${task.completed ? 'line-through text-slate-400' : 'font-medium text-slate-700 dark:text-slate-200'}`}>{task.title}</span>
-                                        {taskAssignee && (
-                                            <div className="shrink-0" title={`Assegnato a ${taskAssignee.name}`}>
-                                                <Avatar person={taskAssignee} size="sm" className="w-5 h-5 text-[8px]" />
-                                            </div>
+                            return (
+                                <motion.div 
+                                    key={task.id} 
+                                    layout
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className={`flex items-center gap-3 p-2.5 rounded-xl group transition-all border ${task.pinned ? 'bg-amber-50/60 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900/30 shadow-sm ring-1 ring-amber-500/5' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-300'}`}
+                                >
+                                    <button 
+                                        onClick={() => updateTask(branch.id, task.id, { completed: !task.completed })} 
+                                        className={`${task.completed ? 'text-green-500' : 'text-slate-300 dark:text-slate-500 hover:text-indigo-500'} ${task.pinned && !task.completed ? '!text-amber-500' : ''}`}
+                                    >
+                                        {task.completed ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+                                    </button>
+                                    
+                                    <div className="flex-1 min-w-0 flex items-center gap-2 justify-between">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <span 
+                                                onClick={() => setEditingTask({ branchId: branch.id, taskId: task.id })} 
+                                                className={`text-sm cursor-pointer break-words truncate ${task.completed ? 'line-through text-slate-400' : 'font-medium text-slate-700 dark:text-slate-200'} ${task.pinned && !task.completed ? 'font-bold text-slate-900 dark:text-slate-100' : ''}`}
+                                            >
+                                                {task.title}
+                                            </span>
+                                            {taskAssignee && (
+                                                <div className="shrink-0" title={`Assegnato a ${taskAssignee.name}`}>
+                                                    <Avatar person={taskAssignee} size="sm" className="w-5 h-5 text-[8px]" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        {task.cost !== undefined && task.cost !== null && task.cost !== 0 && (
+                                            <span className={`text-[10px] font-mono font-bold shrink-0 px-1.5 py-0.5 rounded-md ${task.cost > 0 ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20' : 'text-red-700 bg-red-50 dark:bg-red-900/20'}`}>
+                                                {task.cost > 0 ? '+' : ''}{formatCost(task.cost)}
+                                            </span>
                                         )}
                                     </div>
-                                    {task.cost !== undefined && task.cost !== null && task.cost !== 0 && (
-                                        <span className={`text-[10px] font-mono font-bold shrink-0 px-1.5 py-0.5 rounded-md ${task.cost > 0 ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20' : 'text-red-700 bg-red-50 dark:bg-red-900/20'}`}>
-                                            {task.cost > 0 ? '+' : ''}{formatCost(task.cost)}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); duplicateTask(branch.id, task.id); }}
-                                        className="p-1 text-slate-300 hover:text-indigo-500"
-                                        title="Duplica Task"
-                                    >
-                                        <Copy className="w-3.5 h-3.5" />
-                                    </button>
-                                    {!task.completed && (
-                                        <div className="flex flex-col mr-1">
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); moveTask(branch.id, task.id, 'up'); }}
-                                                disabled={!canMoveUp}
-                                                className={`p-0.5 ${canMoveUp ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 dark:text-slate-700 cursor-not-allowed'}`}
-                                            >
-                                                <ChevronUp className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); moveTask(branch.id, task.id, 'down'); }}
-                                                disabled={!canMoveDown}
-                                                className={`p-0.5 ${canMoveDown ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 dark:text-slate-700 cursor-not-allowed'}`}
-                                            >
-                                                <ChevronDown className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
-                                    )}
-                                    <input 
-                                        type="checkbox" 
-                                        checked={selectedTaskIds.includes(task.id)} 
-                                        onChange={(e) => e.target.checked ? setSelectedTaskIds([...selectedTaskIds, task.id]) : setSelectedTaskIds(selectedTaskIds.filter(id => id !== task.id))} 
-                                        className="w-4 h-4 rounded border-amber-300 bg-amber-50 dark:bg-slate-700 text-amber-600 focus:ring-amber-500 mr-2 cursor-pointer shadow-sm" 
-                                    />
-                                    <button onClick={() => deleteTask(branch.id, task.id)} className="p-1 text-slate-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-                                </div>
-                            </div>
-                        );
-                    })}
+
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); updateTask(branch.id, task.id, { pinned: !task.pinned }); }}
+                                            className={`p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 ${task.pinned ? 'text-amber-500 bg-amber-100/50 dark:bg-amber-900/30' : 'text-slate-300 dark:text-slate-500'}`}
+                                            title={task.pinned ? "Rimuovi pin" : "Metti in alto"}
+                                        >
+                                            <Pin className={`w-3.5 h-3.5 ${task.pinned ? 'fill-current' : ''}`} />
+                                        </button>
+
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); duplicateTask(branch.id, task.id); }}
+                                            className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-300 hover:text-indigo-500"
+                                            title="Duplica Task"
+                                        >
+                                            <Copy className="w-3.5 h-3.5" />
+                                        </button>
+                                        
+                                        {!task.completed && (
+                                            <div className="flex flex-col mr-1">
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); moveTask(branch.id, task.id, 'up'); }}
+                                                    disabled={!canMoveUp}
+                                                    className={`p-0.5 ${canMoveUp ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 dark:text-slate-700 cursor-not-allowed'}`}
+                                                >
+                                                    <ChevronUp className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); moveTask(branch.id, task.id, 'down'); }}
+                                                    disabled={!canMoveDown}
+                                                    className={`p-0.5 ${canMoveDown ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 dark:text-slate-700 cursor-not-allowed'}`}
+                                                >
+                                                    <ChevronDown className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        )}
+                                        <input 
+                                            type="checkbox" 
+                                            checked={selectedTaskIds.includes(task.id)} 
+                                            onChange={(e) => e.target.checked ? setSelectedTaskIds([...selectedTaskIds, task.id]) : setSelectedTaskIds(selectedTaskIds.filter(id => id !== task.id))} 
+                                            className="w-4 h-4 rounded border-amber-300 bg-amber-50 dark:bg-slate-700 text-amber-600 focus:ring-amber-500 mr-2 cursor-pointer shadow-sm" 
+                                        />
+                                        <button onClick={() => deleteTask(branch.id, task.id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                </motion.div>
+                            );
+                        })}
+                    </AnimatePresence>
                     <form onSubmit={(e) => { e.preventDefault(); if(newTaskTitle.trim()){ addTask(branch.id, newTaskTitle); setNewTaskTitle(''); } }} className="flex gap-2">
                         <input type="text" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder="Aggiungi task..." className="flex-1 text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 bg-white dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" />
                         <button type="submit" className="bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 shadow-md transition-all active:scale-95"><Plus className="w-5 h-5"/></button>

@@ -5,7 +5,8 @@ import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
 import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
-import { Plus, Calendar, Archive, FileText, ChevronDown, ChevronUp, GitMerge, Tag, Eye, CheckCircle2, Zap, RefreshCw, ChevronLeft, ChevronRight, CornerDownRight, Folder, Compass, Quote, ChevronsDown, ChevronsUp, Banknote } from 'lucide-react';
+import { Plus, Calendar, Archive, FileText, ChevronDown, ChevronUp, GitMerge, Tag, Eye, CheckCircle2, Zap, RefreshCw, ChevronLeft, ChevronRight, CornerDownRight, Folder, Compass, Quote, ChevronsDown, ChevronsUp, Banknote, Pin } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import Avatar from '../ui/Avatar';
 import Markdown from '../ui/Markdown';
 import { formatCost } from '../../lib/format';
@@ -40,10 +41,16 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
         list = list.filter(t => !t.completed);
     }
     return list.sort((a, b) => {
-        if (a.completed === b.completed) {
-            return (a.position ?? 0) - (b.position ?? 0);
+        // First priority: completion status (incomplete first)
+        if (a.completed !== b.completed) {
+            return a.completed ? 1 : -1;
         }
-        return a.completed ? 1 : -1;
+        // Second priority: pinned status (pinned first)
+        if (!!a.pinned !== !!b.pinned) {
+            return a.pinned ? -1 : 1;
+        }
+        // Final priority: manual position
+        return (a.position ?? 0) - (b.position ?? 0);
     });
   }, [branch?.tasks, showOnlyOpen]);
 
@@ -336,81 +343,97 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                 </div>
                 
                 <ul className="mt-2 space-y-1.5">
-                    {visibleTasks.map((task, taskIdx) => {
-                        const directAssignee = task.assigneeId ? state.people.find(p => p.id === task.assigneeId) : null;
-                        const isTaskOrphan = task.assigneeId ? !directAssignee : false;
-                        
-                        const inheritedAssignee = !directAssignee ? effectiveBranchResp : null;
-                        const displayAssignee = directAssignee || inheritedAssignee;
+                    <AnimatePresence initial={false}>
+                        {visibleTasks.map((task, taskIdx) => {
+                            const directAssignee = task.assigneeId ? state.people.find(p => p.id === task.assigneeId) : null;
+                            const isTaskOrphan = task.assigneeId ? !directAssignee : false;
+                            
+                            const inheritedAssignee = !directAssignee ? effectiveBranchResp : null;
+                            const displayAssignee = directAssignee || inheritedAssignee;
 
-                        const canMoveUp = taskIdx > 0 && sortedTasks[taskIdx - 1].completed === task.completed;
-                        const canMoveDown = taskIdx < sortedTasks.length - 1 && sortedTasks[taskIdx + 1].completed === task.completed;
+                            const canMoveUp = taskIdx > 0 && sortedTasks[taskIdx - 1].completed === task.completed && sortedTasks[taskIdx - 1].pinned === task.pinned;
+                            const canMoveDown = taskIdx < sortedTasks.length - 1 && sortedTasks[taskIdx + 1].completed === task.completed && sortedTasks[taskIdx + 1].pinned === task.pinned;
 
-                        return (
-                            <li key={task.id} className={`group/task text-[11px] flex items-center justify-between gap-2 py-0.5 relative`}>
-                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                    <div 
-                                      onClick={(e) => { e.stopPropagation(); updateTask(branch.id, task.id, { completed: !task.completed }); }}
-                                      className={`flex-shrink-0 w-0.5 h-0.5 rounded-full cursor-pointer hover:scale-[4] transition-transform ${task.completed ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`} 
-                                    />
-                                    <span 
-                                        onClick={(e) => { e.stopPropagation(); setEditingTask({ branchId: branch.id, taskId: task.id }); }}
-                                        className={`break-words whitespace-normal text-slate-600 dark:text-slate-300 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors ${task.completed ? 'line-through opacity-60' : ''}`}
-                                    >
-                                        {task.title}
-                                    </span>
-                                    {task.cost !== undefined && task.cost !== null && task.cost !== 0 && (
-                                        <span className={`text-[8px] font-mono font-bold ml-1 ${task.cost > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                                            ({formatCost(task.cost)})
+                            return (
+                                <motion.li 
+                                    key={task.id} 
+                                    layout
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className={`group/task text-[11px] flex items-center justify-between gap-2 py-1 px-1.5 rounded-lg transition-all relative ${task.pinned ? 'bg-amber-50/60 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 shadow-sm ring-1 ring-amber-500/5' : ''}`}
+                                >
+                                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                        <div 
+                                          onClick={(e) => { e.stopPropagation(); updateTask(branch.id, task.id, { completed: !task.completed }); }}
+                                          className={`flex-shrink-0 w-0.5 h-0.5 rounded-full cursor-pointer hover:scale-[4] transition-transform ${task.completed ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'} ${task.pinned ? '!bg-amber-400 ring-2 ring-amber-400/20' : ''}`} 
+                                        />
+                                        <span 
+                                            onClick={(e) => { e.stopPropagation(); setEditingTask({ branchId: branch.id, taskId: task.id }); }}
+                                            className={`break-words whitespace-normal text-slate-600 dark:text-slate-300 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors ${task.completed ? 'line-through opacity-60' : ''} ${task.pinned ? 'font-bold text-slate-800 dark:text-slate-100' : ''}`}
+                                        >
+                                            {task.title}
                                         </span>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center gap-1.5 flex-shrink-0">
-                                    <div className="flex items-center opacity-0 group-hover/task:opacity-100 transition-opacity">
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); moveTask(branch.id, task.id, 'up'); }}
-                                            disabled={!canMoveUp}
-                                            className={`p-0.5 ${canMoveUp ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 dark:text-slate-800'}`}
-                                        >
-                                            <ChevronUp className="w-3 h-3" />
-                                        </button>
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); moveTask(branch.id, task.id, 'down'); }}
-                                            disabled={!canMoveDown}
-                                            className={`p-0.5 ${canMoveDown ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 dark:text-slate-800'}`}
-                                        >
-                                            <ChevronDown className="w-3 h-3" />
-                                        </button>
+                                        {task.cost !== undefined && task.cost !== null && task.cost !== 0 && (
+                                            <span className={`text-[8px] font-mono font-bold ml-1 ${task.cost > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                ({formatCost(task.cost)})
+                                            </span>
+                                        )}
                                     </div>
 
-                                    {task.completed && task.completedAt ? (
-                                        <div className="flex items-center text-green-500">
-                                            <CheckCircle2 className="w-3 h-3" />
+                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                        <div className="flex items-center opacity-0 group-hover/task:opacity-100 transition-opacity mr-1">
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); updateTask(branch.id, task.id, { pinned: !task.pinned }); }}
+                                                className={`p-1 rounded hover:bg-amber-100 dark:hover:bg-amber-900/30 ${task.pinned ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600'}`}
+                                                title={task.pinned ? "Rimuovi pin" : "Metti in alto"}
+                                            >
+                                                <Pin className={`w-2.5 h-2.5 ${task.pinned ? 'fill-current' : ''}`} />
+                                            </button>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); moveTask(branch.id, task.id, 'up'); }}
+                                                disabled={!canMoveUp}
+                                                className={`p-0.5 ${canMoveUp ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 dark:text-slate-800'}`}
+                                            >
+                                                <ChevronUp className="w-3 h-3" />
+                                            </button>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); moveTask(branch.id, task.id, 'down'); }}
+                                                disabled={!canMoveDown}
+                                                className={`p-0.5 ${canMoveDown ? 'text-indigo-400 hover:text-indigo-600' : 'text-slate-200 dark:text-slate-800'}`}
+                                            >
+                                                <ChevronDown className="w-3 h-3" />
+                                            </button>
                                         </div>
-                                    ) : task.dueDate ? (
-                                        <div className={`flex items-center gap-0.5 px-1 rounded-sm text-[8px] font-black ${new Date(task.dueDate) < new Date() ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700'}`}>
-                                            <Calendar className="w-2.5 h-2.5" />
-                                            <span>{new Date(task.dueDate).getDate()}/{new Date(task.dueDate).getMonth() + 1}</span>
-                                        </div>
-                                    ) : null}
-                                    {(displayAssignee || isTaskOrphan) && (
-                                        <div className="relative">
-                                            <Avatar 
-                                                person={displayAssignee} 
-                                                isUnknown={isTaskOrphan}
-                                                size="sm" 
-                                                className={`w-4 h-4 text-[7px] ${!directAssignee && !isTaskOrphan ? 'opacity-40 grayscale border border-dashed border-slate-400' : ''}`} 
-                                            />
-                                            {!directAssignee && !isTaskOrphan && (
-                                                <CornerDownRight className="absolute -top-1 -left-1 w-2 h-2 text-indigo-500 bg-white dark:bg-slate-800 rounded-full" />
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </li>
-                        );
-                    })}
+
+                                        {task.completed && task.completedAt ? (
+                                            <div className="flex items-center text-green-500">
+                                                <CheckCircle2 className="w-3 h-3" />
+                                            </div>
+                                        ) : task.dueDate ? (
+                                            <div className={`flex items-center gap-0.5 px-1 rounded-sm text-[8px] font-black ${new Date(task.dueDate) < new Date() ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700'}`}>
+                                                <Calendar className="w-2.5 h-2.5" />
+                                                <span>{new Date(task.dueDate).getDate()}/{new Date(task.dueDate).getMonth() + 1}</span>
+                                            </div>
+                                        ) : null}
+                                        {(displayAssignee || isTaskOrphan) && (
+                                            <div className="relative ml-1">
+                                                <Avatar 
+                                                    person={displayAssignee} 
+                                                    isUnknown={isTaskOrphan}
+                                                    size="sm" 
+                                                    className={`w-4 h-4 text-[7px] ${!directAssignee && !isTaskOrphan ? 'opacity-40 grayscale border border-dashed border-slate-400' : ''}`} 
+                                                />
+                                                {!directAssignee && !isTaskOrphan && (
+                                                    <CornerDownRight className="absolute -top-1 -left-1 w-2 h-2 text-indigo-500 bg-white dark:bg-slate-800 rounded-full" />
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.li>
+                            );
+                        })}
+                    </AnimatePresence>
                     
                     {!isTasksExpanded && hiddenTasksCount > 0 && (
                         <li 
