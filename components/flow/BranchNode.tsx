@@ -86,14 +86,14 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
         });
   }, [state.branches, parentId, isRootBranch, state.id, branch]);
 
+  const branchCost = useMemo(() => calculateBranchCost(branchId, state), [branchId, state]);
+
   if (!branch) return null;
 
   const isSelected = selectedBranchId === branchId;
   const totalTasks = branch.tasks.length;
   const completedTasks = branch.tasks.filter(t => t.completed).length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-
-  const branchCost = useMemo(() => calculateBranchCost(branchId, state), [branchId, state]);
 
   const currentResp = branch.responsibleId && branch.responsibleId !== 'none' 
       ? state.people.find(p => p.id === branch.responsibleId) 
