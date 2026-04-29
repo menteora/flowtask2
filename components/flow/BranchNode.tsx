@@ -202,7 +202,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                         {isSprint && <Zap className={`w-4 h-4 shrink-0 ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />}
                         {isLabel && <Tag className={`w-4 h-4 shrink-0 ${isSelected ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`} />}
                         {isObjective && <Compass className={`w-4 h-4 shrink-0 ${isSelected ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400'}`} />}
-                        <span className={`font-black text-sm uppercase tracking-tight truncate ${isObjective ? 'text-cyan-700 dark:text-cyan-300' : 'text-slate-700 dark:text-slate-200'}`} title={branch.title}>
+                        <span className={`font-black text-sm uppercase tracking-tight truncate block py-0.5 leading-normal ${isObjective ? 'text-cyan-700 dark:text-cyan-300' : 'text-slate-700 dark:text-slate-200'}`} title={branch.title}>
                             {branch.title}
                         </span>
                         {branchCost !== 0 && branchCost !== undefined && branchCost !== null && (
@@ -277,7 +277,7 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
         <div className={`p-3 border-b border-slate-100/50 dark:border-slate-700/50 flex justify-between items-start ${branch.archived ? 'bg-slate-50 dark:bg-slate-800' : ''} relative`}>
           <div className="flex flex-col gap-1 overflow-hidden flex-1 min-w-0 pr-1">
              <div className="flex items-center justify-between gap-2">
-                 <h3 className="font-bold text-slate-800 dark:text-white truncate text-sm flex items-center gap-2" title={branch.title}>
+                 <h3 className="font-bold text-slate-800 dark:text-white truncate text-sm flex items-center gap-2 py-0.5 leading-normal" title={branch.title}>
                   {branch.title}
                   {branch.archived && <Archive className="w-3 h-3 text-slate-400" />}
                 </h3>

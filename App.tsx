@@ -20,7 +20,6 @@ import TaskDescriptionReader from './components/modals/TaskDescriptionReader';
 import TaskEditorModal from './components/modals/TaskEditorModal';
 import MessageComposer from './components/modals/MessageComposer';
 import ReportGenerator from './components/modals/ReportGenerator';
-import { toPng } from 'html-to-image';
 import { localStorageService } from './services/localStorage';
 
 type View = 'workflow' | 'team' | 'calendar' | 'assignments' | 'settings' | 'timeline' | 'focus';
@@ -76,24 +75,6 @@ const App: React.FC = () => {
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
-  };
-
-  const handleImageExport = async () => {
-    const isMobile = window.innerWidth < 768;
-    const type = isMobile ? 'tree' : 'canvas';
-    const elementId = isMobile ? 'export-tree-content' : 'export-canvas-content';
-    const node = document.getElementById(elementId);
-    if (!node) { return; }
-
-    try {
-        const bgColor = theme === 'dark' ? '#020617' : '#f8fafc'; 
-        const style: React.CSSProperties = { backgroundColor: bgColor, display: 'block', overflow: 'visible' };
-        if (type === 'canvas') { style.width = `${node.scrollWidth}px`; style.height = `${node.scrollHeight}px`; }
-        const dataUrl = await toPng(node, { cacheBust: true, backgroundColor: bgColor, style: style as any });
-        const link = document.createElement('a');
-        link.download = `flowtask_${state.name.replace(/\s+/g, '_')}_${type}.png`;
-        link.href = dataUrl; link.click();
-    } catch (err) { console.error(err); }
   };
 
   const startEditingProject = (proj: any) => { setEditingNameId(proj.id); setTempProjectName(proj.name); };
@@ -271,37 +252,38 @@ const App: React.FC = () => {
       </div>
 
       <div className="flex-1 flex flex-col relative h-full overflow-hidden">
-        {currentView === 'workflow' ? (
-            <>
-                <div className="hidden md:block w-full h-full relative"><FlowCanvas /></div>
-                <div className="block md:hidden w-full h-full"><FolderTree /></div>
-                <div className="hidden md:flex absolute bottom-10 right-10 flex-col gap-3 z-30 pointer-events-none">
-                    <div className="flex flex-col gap-3 pointer-events-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-2.5 rounded-2xl shadow-2xl border-2 border-indigo-100 dark:border-indigo-900/50">
-                        <button 
-                            onClick={() => setAllBranchesCollapsed(false)} 
-                            className="p-3.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 hover:scale-110 transition-all shadow-md active:scale-95" 
-                            title="Espandi Tutto"
-                        >
-                            <ChevronsDown className="w-6 h-6" />
-                        </button>
-                        <div className="h-px bg-indigo-100 dark:bg-indigo-900 mx-1"></div>
-                        <button 
-                            onClick={() => setAllBranchesCollapsed(true)} 
-                            className="p-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 hover:scale-110 transition-all shadow-md active:scale-95" 
-                            title="Comprimi Tutto"
-                        >
-                            <ChevronsUp className="w-6 h-6" />
-                        </button>
-                    </div>
+        <div id="export-workflow-container" className={`w-full h-full ${currentView === 'workflow' ? 'block' : 'hidden'}`}>
+            <div className="hidden md:block w-full h-full relative"><FlowCanvas /></div>
+            <div className="block md:hidden w-full h-full"><FolderTree /></div>
+            <div className="hidden md:flex absolute bottom-10 right-10 flex-col gap-3 z-30 pointer-events-none">
+                <div className="flex flex-col gap-3 pointer-events-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-2.5 rounded-2xl shadow-2xl border-2 border-indigo-100 dark:border-indigo-900/50">
+                    <button 
+                        onClick={() => setAllBranchesCollapsed(false)} 
+                        className="p-3.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 hover:scale-110 transition-all shadow-md active:scale-95" 
+                        title="Espandi Tutto"
+                    >
+                        <ChevronsDown className="w-6 h-6" />
+                    </button>
+                    <div className="h-px bg-indigo-100 dark:bg-indigo-900 mx-1"></div>
+                    <button 
+                        onClick={() => setAllBranchesCollapsed(true)} 
+                        className="p-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 hover:scale-110 transition-all shadow-md active:scale-95" 
+                        title="Comprimi Tutto"
+                    >
+                        <ChevronsUp className="w-6 h-6" />
+                    </button>
                 </div>
-                {selectedBranchId && <BranchDetails />}
-            </>
-        ) : currentView === 'timeline' ? (<><TimelinePanel />{selectedBranchId && <BranchDetails />}</>) 
+            </div>
+            {selectedBranchId && <BranchDetails />}
+        </div>
+
+        {currentView === 'timeline' ? (<><TimelinePanel />{selectedBranchId && <BranchDetails />}</>) 
           : currentView === 'focus' ? <FocusPanel />
           : currentView === 'calendar' ? <CalendarPanel />
           : currentView === 'assignments' ? <UserTasksPanel />
           : currentView === 'settings' ? <SettingsPanel />
-          : <div className="flex-1 p-4 md:p-8 overflow-auto"><PeopleManager /></div>
+          : currentView === 'team' ? <div className="flex-1 p-4 md:p-8 overflow-auto"><PeopleManager /></div>
+          : null
         }
       </div>
 
