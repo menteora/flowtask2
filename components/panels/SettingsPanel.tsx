@@ -3,12 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useTask } from '../../context/TaskContext';
 import { useBranch } from '../../context/BranchContext';
+import { useTheme } from '../../context/ThemeContext';
+import html2canvas from 'html2canvas';
 import { generateProjectMarkdown, downloadMarkdown } from '../../lib/markdownExport';
 import { 
-  Database, Download, Key, Cloud, Loader2, LogOut, Upload, Trash2, RefreshCw, FileJson, Terminal, Check, Copy, Wifi, WifiOff, MessageSquare, Settings as SettingsIcon, FileDown, Target, Info, AlertTriangle, X, FileText
+  Database, Download, Key, Cloud, Loader2, LogOut, Upload, Trash2, RefreshCw, FileJson, Terminal, Check, Copy, Wifi, WifiOff, MessageSquare, Settings as SettingsIcon, FileDown, Target, Info, AlertTriangle, X, FileText, Camera
 } from 'lucide-react';
 
 const SettingsPanel: React.FC = () => {
+  const { theme } = useTheme();
   const { 
     supabaseConfig, setSupabaseConfig, uploadProjectToSupabase, listProjectsFromSupabase,
     downloadProjectFromSupabase, deleteProjectFromSupabase,
@@ -34,6 +37,96 @@ const SettingsPanel: React.FC = () => {
   
   const [deletingCloudProjectId, setDeletingCloudProjectId] = useState<string | null>(null);
   const [exportStartBranchId, setExportStartBranchId] = useState<string>('');
+  const [isExportingImage, setIsExportingImage] = useState(false);
+
+  const handleExportImage = async () => {
+    setIsExportingImage(true);
+    const isMobile = window.innerWidth < 768;
+    const elementId = isMobile ? 'export-tree-content' : 'export-canvas-content';
+    const node = document.getElementById(elementId);
+    
+    if (!node) {
+      showNotification("Impossibile trovare l'area di lavoro da catturare. Assicurati che il progetto sia caricato.", "error");
+      setIsExportingImage(false);
+      return;
+    }
+
+    // Cerchiamo il container genitore che potrebbe essere hidden
+    const workspaceContainer = document.getElementById('export-workflow-container');
+    const wasHidden = workspaceContainer?.classList.contains('hidden');
+
+    try {
+      if (wasHidden && workspaceContainer) {
+          workspaceContainer.classList.remove('hidden');
+          workspaceContainer.classList.add('flex'); // Assicurati che sia visibile per il calcolo
+          workspaceContainer.style.position = 'fixed';
+          workspaceContainer.style.top = '-99999px';
+          workspaceContainer.style.left = '-99999px';
+          workspaceContainer.style.width = '1920px'; // Forza una dimensione desktop se necessario? No, meglio lasciarlo fluido
+          workspaceContainer.style.visibility = 'visible';
+          workspaceContainer.style.opacity = '1';
+          workspaceContainer.style.zIndex = '-1000';
+      }
+
+      // Aspettiamo che i font siano pronti
+      await document.fonts.ready;
+      // Piccolo delay per permettere il reflow
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      if (node.scrollWidth === 0 || node.scrollHeight === 0) {
+          throw new Error("L'area da catturare ha dimensioni nulle. Prova a tornare alla vista Workflow prima di esportare.");
+      }
+
+      const bgColor = theme === 'dark' ? '#020617' : '#f8fafc'; 
+      
+      const canvas = await html2canvas(node, {
+        backgroundColor: bgColor,
+        useCORS: true,
+        scale: 2, 
+        logging: false,
+        width: node.scrollWidth,
+        height: node.scrollHeight,
+        windowWidth: node.scrollWidth,
+        windowHeight: node.scrollHeight,
+        onclone: (clonedDoc) => {
+            const clonedNode = clonedDoc.getElementById(elementId);
+            if (clonedNode) {
+                clonedNode.style.display = 'block';
+                clonedNode.style.overflow = 'visible';
+                clonedNode.style.padding = '40px';
+            }
+        }
+      });
+
+      const dataUrl = canvas.toDataURL('image/png');
+      
+      if (!dataUrl || dataUrl.length < 1000) {
+          throw new Error("Dati immagine troppo brevi (" + (dataUrl?.length || 0) + ")");
+      }
+
+      const link = document.createElement('a');
+      link.download = `flowtask_${state.name.replace(/\s+/g, '_')}_${isMobile ? 'tree' : 'canvas'}_${new Date().toISOString().split('T')[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+      showNotification("Immagine scaricata correttamente.", "success");
+    } catch (err) {
+      console.error("Export Image Error:", err);
+      showNotification("Errore durante la generazione dell'immagine. Riprova.", "error");
+    } finally {
+      if (wasHidden && workspaceContainer) {
+          workspaceContainer.classList.add('hidden');
+          workspaceContainer.classList.remove('flex');
+          workspaceContainer.style.position = '';
+          workspaceContainer.style.top = '';
+          workspaceContainer.style.left = '';
+          workspaceContainer.style.width = '';
+          workspaceContainer.style.visibility = '';
+          workspaceContainer.style.opacity = '';
+          workspaceContainer.style.zIndex = '';
+      }
+      setIsExportingImage(false);
+    }
+  };
 
   const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -276,10 +369,20 @@ CREATE INDEX idx_flowtask_people_project_id ON public.flowtask_people (project_i
                         </div>
                     </div>
                     <div className="space-y-2">
-                         <label className="text-[10px] uppercase tracking-wider text-slate-400 font-bold ml-1">Salvataggio Progetto (JSON)</label>
-                         <button onClick={exportActiveProjectToJSON} className="w-full px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-indigo-200 dark:border-indigo-800 shadow-sm hover:bg-indigo-100 transition-colors">
-                            <FileDown className="w-4 h-4" /> Esporta JSON
-                        </button>
+                         <label className="text-[10px] uppercase tracking-wider text-slate-400 font-bold ml-1">Esportazione Progetto</label>
+                         <div className="flex gap-2">
+                             <button onClick={exportActiveProjectToJSON} className="flex-1 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-indigo-200 dark:border-indigo-800 shadow-sm hover:bg-indigo-100 transition-colors">
+                                <FileDown className="w-4 h-4" /> JSON
+                            </button>
+                            <button 
+                                onClick={handleExportImage} 
+                                disabled={isExportingImage}
+                                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-transparent shadow-sm hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                            >
+                                {isExportingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />} 
+                                Immagine
+                            </button>
+                         </div>
                     </div>
                 </div>
             </div>
