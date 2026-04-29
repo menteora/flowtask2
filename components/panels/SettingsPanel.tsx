@@ -2,21 +2,24 @@
 import React, { useState, useEffect } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useTask } from '../../context/TaskContext';
+import { useBranch } from '../../context/BranchContext';
+import { generateProjectMarkdown, downloadMarkdown } from '../../lib/markdownExport';
 import { 
-  Database, Download, Key, Cloud, Loader2, LogOut, Upload, Trash2, RefreshCw, FileJson, Terminal, Check, Copy, Wifi, WifiOff, MessageSquare, Settings as SettingsIcon, FileDown, Target, Info, AlertTriangle, X
+  Database, Download, Key, Cloud, Loader2, LogOut, Upload, Trash2, RefreshCw, FileJson, Terminal, Check, Copy, Wifi, WifiOff, MessageSquare, Settings as SettingsIcon, FileDown, Target, Info, AlertTriangle, X, FileText
 } from 'lucide-react';
 
 const SettingsPanel: React.FC = () => {
   const { 
     supabaseConfig, setSupabaseConfig, uploadProjectToSupabase, listProjectsFromSupabase,
     downloadProjectFromSupabase, deleteProjectFromSupabase,
-    exportAllToJSON, exportActiveProjectToJSON, state, session, logout, disableOfflineMode, enableOfflineMode, showNotification,
+    exportAllToJSON, exportActiveProjectToJSON, state, session, logout, disableOfflineMode, enableOfflineMode, showNotification, loadProject,
     isOfflineMode
   } = useProject();
 
-  const { messageTemplates, updateMessageTemplates, focusTemplate, updateFocusTemplate } = useTask();
+  const { showArchived } = useBranch();
+  const { messageTemplates, updateMessageTemplates, focusTemplate, updateFocusTemplate, showOnlyOpen } = useTask();
 
-  const [activeTab, setActiveTab] = useState<'cloud' | 'preferences' | 'sql'>('cloud');
+  const [activeTab, setActiveTab] = useState<'data' | 'cloud' | 'preferences' | 'sql'>('data');
   const [url, setUrl] = useState(supabaseConfig.url);
   const [key, setKey] = useState(supabaseConfig.key);
   const [msgOpening, setMsgOpening] = useState(messageTemplates.opening);
@@ -30,6 +33,7 @@ const SettingsPanel: React.FC = () => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   const [deletingCloudProjectId, setDeletingCloudProjectId] = useState<string | null>(null);
+  const [exportStartBranchId, setExportStartBranchId] = useState<string>('');
 
   const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -46,6 +50,23 @@ const SettingsPanel: React.FC = () => {
     };
     reader.readAsText(file);
     e.target.value = '';
+  };
+
+  const handleExportMarkdown = () => {
+    const options = { 
+      showOnlyOpen, 
+      showArchived, 
+      startBranchId: exportStartBranchId || undefined 
+    };
+    const md = generateProjectMarkdown(state, options);
+    
+    let fileName = `flowtask_project_${state.name.replace(/\s+/g, '_')}`;
+    if (exportStartBranchId) {
+      const branch = state.branches[exportStartBranchId];
+      if (branch) fileName = `flowtask_branch_${branch.title.replace(/\s+/g, '_')}`;
+    }
+    
+    downloadMarkdown(md, `${fileName}_${new Date().toISOString().split('T')[0]}`);
   };
 
   useEffect(() => {
@@ -208,54 +229,114 @@ CREATE INDEX idx_flowtask_people_project_id ON public.flowtask_people (project_i
 
   return (
     <div className="w-full max-w-5xl mx-auto h-full flex flex-col p-4 md:p-8 overflow-hidden relative">
-      <div className="mb-6 flex flex-col md:flex-row md:justify-between md:items-start gap-4 flex-shrink-0">
+      <div className="mb-6 flex-shrink-0">
         <div>
             <h2 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3">
                 <SettingsIcon className="w-8 h-8 text-indigo-600" /> Impostazioni
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Configura la preferenze del tuo workspace.</p>
         </div>
-        
-        <div className="flex flex-wrap gap-2">
-            <input type="file" ref={fileInputRef} onChange={handleImportJSON} accept=".json" className="hidden" />
-            <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
-                <Upload className="w-4 h-4" /> Importa JSON
-            </button>
-            <button onClick={exportActiveProjectToJSON} className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-bold flex items-center gap-2 border border-indigo-200 dark:border-indigo-800 shadow-sm hover:bg-indigo-100 transition-colors">
-                <FileDown className="w-4 h-4" /> Esporta Progetto ({state.name})
-            </button>
-            <button onClick={exportAllToJSON} className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm hover:bg-emerald-700 transition-colors">
-                <FileJson className="w-4 h-4" /> Backup Totale
-            </button>
-            {isOfflineMode ? (
-                <button onClick={disableOfflineMode} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm">
-                    <Wifi className="w-4 h-4" /> Passa a Cloud
-                </button>
-            ) : (
-                <button onClick={enableOfflineMode} className="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm">
-                    <WifiOff className="w-4 h-4" /> Lavora in Locale
-                </button>
-            )}
-            {session && (
-                <button onClick={logout} className="p-2 text-slate-400 hover:text-red-500 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors"><LogOut className="w-4 h-4" /></button>
-            )}
-        </div>
       </div>
 
       <div className="flex items-center gap-1 mb-6 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
+          <button onClick={() => setActiveTab('data')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'data' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>Dati</button>
           <button onClick={() => setActiveTab('cloud')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'cloud' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>Cloud & Database</button>
           <button onClick={() => setActiveTab('preferences')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'preferences' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>Preferenze</button>
           <button onClick={() => setActiveTab('sql')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'sql' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>Setup SQL</button>
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar pb-20">
-          {activeTab === 'cloud' && (
+          {activeTab === 'data' && (
+        <div className="space-y-6">
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-sm mb-2">
+                    <Target className="w-4 h-4 text-indigo-500" />
+                    Gestione Progetto Attivo
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2 border-b dark:border-slate-800">
+                    <div className="space-y-2">
+                        <label className="text-[10px] uppercase tracking-wider text-slate-400 font-bold ml-1">Esportazione Struttura (Markdown)</label>
+                        <div className="flex items-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                            <select 
+                                value={exportStartBranchId} 
+                                onChange={(e) => setExportStartBranchId(e.target.value)}
+                                className="pl-3 pr-1 py-2 bg-transparent text-[10px] font-bold text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700 outline-none flex-1"
+                            >
+                                <option value="">Intero Progetto</option>
+                                {Object.values(state.branches)
+                                    .sort((a, b) => a.title.localeCompare(b.title))
+                                    .map(b => (
+                                        <option key={b.id} value={b.id}>{b.title}</option>
+                                    ))
+                                }
+                            </select>
+                            <button onClick={handleExportMarkdown} className="px-4 py-2 text-indigo-600 dark:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" title="Scarica MD">
+                                <FileText className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                         <label className="text-[10px] uppercase tracking-wider text-slate-400 font-bold ml-1">Salvataggio Progetto (JSON)</label>
+                         <button onClick={exportActiveProjectToJSON} className="w-full px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-indigo-200 dark:border-indigo-800 shadow-sm hover:bg-indigo-100 transition-colors">
+                            <FileDown className="w-4 h-4" /> Esporta JSON
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-sm mb-2">
+                    <Database className="w-4 h-4 text-emerald-500" />
+                    Manutenzione & Backup
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                        <label className="text-[10px] uppercase tracking-wider text-slate-400 font-bold ml-1">Importa Progetto</label>
+                        <input type="file" ref={fileInputRef} onChange={handleImportJSON} accept=".json" className="hidden" />
+                        <button onClick={() => fileInputRef.current?.click()} className="w-full px-4 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
+                            <Upload className="w-4 h-4" /> Carica JSON
+                        </button>
+                    </div>
+                    <div className="space-y-2">
+                         <label className="text-[10px] uppercase tracking-wider text-slate-400 font-bold ml-1">Backup Totale Sistema</label>
+                         <button onClick={exportAllToJSON} className="w-full px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm hover:bg-emerald-700 transition-colors">
+                            <FileJson className="w-4 h-4" /> Backup Completo
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/30">
+                <div className="flex gap-3">
+                    <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-amber-800 dark:text-amber-200 leading-relaxed">
+                        L'esportazione Markdown genera una panoramica leggibile del progetto rispettando i filtri correnti (nasconde i completati se il filtro "Solo Task Aperti" è attivo). Utilizza i file JSON per migrare dati tra diversi dispositivi.
+                    </p>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {activeTab === 'cloud' && (
               <div className="space-y-6">
                   <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
                       <div className="flex items-center justify-between mb-6">
                           <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-white"><Key className="w-5 h-5 text-indigo-500" /> Configurazione Supabase</h3>
-                          <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1.5 ${isOfflineMode ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-600'}`}>
-                              {isOfflineMode ? 'Offline (Locale)' : 'Online (Cloud)'}
+                          <div className="flex items-center gap-2">
+                            {isOfflineMode ? (
+                                <button onClick={disableOfflineMode} className="px-4 py-1.5 bg-indigo-600 text-white rounded-full text-[10px] font-black uppercase flex items-center gap-1.5 shadow-sm transition-all hover:bg-indigo-700">
+                                    <Wifi className="w-3.5 h-3.5" /> Passa a Cloud
+                                </button>
+                            ) : (
+                                <button onClick={enableOfflineMode} className="px-4 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-full text-[10px] font-black uppercase flex items-center gap-1.5 transition-all hover:bg-slate-200 dark:hover:bg-slate-600">
+                                    <WifiOff className="w-3.5 h-3.5" /> Lavora in Locale
+                                </button>
+                            )}
+                            {session && (
+                                <button onClick={logout} className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors" title="Logout">
+                                    <LogOut className="w-3.5 h-3.5" />
+                                </button>
+                            )}
                           </div>
                       </div>
                       <div className="space-y-4">
