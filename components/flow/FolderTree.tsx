@@ -45,6 +45,8 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
     });
   }, [branch?.tasks, showOnlyOpen]);
 
+  const branchCost = useMemo(() => calculateBranchCost(branchId, state), [branchId, state]);
+
   if (!branch) return null;
   
   const isSelfVisible = !branch.archived || showArchived;
@@ -67,7 +69,6 @@ const FolderNode: React.FC<FolderNodeProps> = ({ branchId, depth = 0, index = 0,
   const isSelected = selectedBranchId === branchId;
   const statusConfig = STATUS_CONFIG[branch.status as BranchStatus] || STATUS_CONFIG[BranchStatus.PLANNED];
   
-  const branchCost = useMemo(() => calculateBranchCost(branchId, state), [branchId, state]);
   const isOpen = !branch.collapsed;
 
   const isRootBranch = branch.parentIds.includes(state.id);
