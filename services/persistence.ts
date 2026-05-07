@@ -72,6 +72,7 @@ export const persistenceService = {
         completed: task.completed,
         completed_at: task.completedAt,
         cost: task.cost,
+        is_recurring: task.isRecurring || false,
         position: task.position || 0,
         pinned: task.pinned || false,
         version: task.version
@@ -97,6 +98,7 @@ export const persistenceService = {
           completed: task.completed,
           completed_at: task.completedAt,
           cost: task.cost,
+          is_recurring: task.isRecurring || false,
           position: task.position || 0,
           pinned: task.pinned || false,
           version: task.version
@@ -123,6 +125,7 @@ export const persistenceService = {
           completed: task.completed,
           completed_at: task.completedAt,
           cost: task.cost,
+          is_recurring: task.isRecurring || false,
           position: task.position,
           pinned: task.pinned || false,
           version: task.version 
