@@ -88,6 +88,7 @@ export const useTaskActions = (
         if (!branch) return prev;
 
         let taskToSave: Task | null = null;
+        let taskToRecreate: Task | null = null;
         let branchToUpdate: any = null;
 
         const updatedTasks = branch.tasks.map(t => {
@@ -109,6 +110,21 @@ export const useTaskActions = (
                                 updatedAt: new Date().toISOString()
                             };
                         }
+
+                        // LOGICA RICORRENZA
+                        const effectivelyRecurring = updates.isRecurring !== undefined ? updates.isRecurring : t.isRecurring;
+                        if (effectivelyRecurring) {
+                            taskToRecreate = {
+                                ...t,
+                                ...finalUpdates,
+                                id: crypto.randomUUID(),
+                                completed: false,
+                                completedAt: undefined,
+                                position: branch.tasks.length, // Sarà l'ultimo del gruppo originale
+                                version: 1,
+                                updatedAt: new Date().toISOString()
+                            };
+                        }
                     } else {
                         finalUpdates.completedAt = null;
                     }
@@ -127,6 +143,10 @@ export const useTaskActions = (
 
         if (!taskToSave) return prev;
 
+        if (taskToRecreate) {
+            updatedTasks.push(taskToRecreate);
+        }
+
         const updatedBranches = { 
             ...currentProject.branches, 
             [branchId]: { 
@@ -143,6 +163,10 @@ export const useTaskActions = (
 
         // Persistenza Task
         persistenceService.saveTask(branchId, taskToSave as Task, isOfflineMode, supabaseClient, newProjectState);
+        
+        if (taskToRecreate) {
+            persistenceService.saveTask(branchId, taskToRecreate, isOfflineMode, supabaseClient, newProjectState);
+        }
         
         // Persistenza Ramo (se attivato automaticamente)
         if (branchToUpdate) {

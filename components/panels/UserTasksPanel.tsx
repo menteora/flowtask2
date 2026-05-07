@@ -4,7 +4,7 @@ import { useProject } from '../../context/ProjectContext';
 import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
 import { Branch, Person } from '../../types';
-import { CheckSquare, Square, ClipboardList, HelpCircle, ArrowRight, Calendar, Mail, MessageCircle, FileText, Folder, Pin, X, User, CheckCircle2, FileOutput } from 'lucide-react';
+import { CheckSquare, Square, ClipboardList, HelpCircle, ArrowRight, Calendar, Mail, MessageCircle, FileText, Folder, Pin, X, User, CheckCircle2, FileOutput, RefreshCw } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 
 // Interface for the aggregated group
@@ -25,6 +25,7 @@ interface AggregatedUserGroup {
     projectId: string;
     projectName: string;
     pinned?: boolean;
+    isRecurring?: boolean;
     originalAssigneeId: string;
     isInherited?: boolean; // New flag to distinguish direct vs inherited
   }>;
@@ -130,6 +131,7 @@ const UserTasksPanel: React.FC = () => {
               projectId: proj.id,
               projectName: proj.name,
               pinned: task.pinned,
+              isRecurring: task.isRecurring,
               originalAssigneeId: task.assigneeId || '',
               isInherited
             });
@@ -274,7 +276,10 @@ const UserTasksPanel: React.FC = () => {
                                                 <button onClick={() => { if (isForeign) { switchProject(task.projectId); showNotification(`Passaggio a ${task.projectName}...`, "success"); } else { updateTask(task.branchId, task.id, { completed: !task.completed }); } }} className={`mt-0.5 flex-shrink-0 ${task.completed ? 'text-green-500' : 'text-slate-300 dark:text-slate-600'}`}>{task.completed ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}</button>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
-                                                        <p className={`text-sm font-medium mb-0.5 cursor-pointer hover:underline ${task.completed ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-200'}`} onClick={() => { if (isForeign) { switchProject(task.projectId); showNotification(`Passaggio a ${task.projectName}...`, "success"); setTimeout(() => setEditingTask({ branchId: task.branchId, taskId: task.id }), 150); } else { setEditingTask({ branchId: task.branchId, taskId: task.id }); } }}>{task.title}</p>
+                                                        <p className={`text-sm font-medium mb-0.5 cursor-pointer hover:underline ${task.completed ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-200'}`} onClick={() => { if (isForeign) { switchProject(task.projectId); showNotification(`Passaggio a ${task.projectName}...`, "success"); setTimeout(() => setEditingTask({ branchId: task.branchId, taskId: task.id }), 150); } else { setEditingTask({ branchId: task.branchId, taskId: task.id }); } }}>
+                                                            {task.title}
+                                                            {task.isRecurring && <RefreshCw className="inline-block w-3 h-3 ml-1 text-indigo-400 opacity-70" />}
+                                                        </p>
                                                         {task.isInherited && <span className="text-[9px] bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 px-1 py-0.5 rounded border border-indigo-100 dark:border-indigo-800 flex items-center gap-0.5" title="Assegnazione ereditata dal ramo"><User className="w-2.5 h-2.5" /> Ered.</span>}
                                                     </div>
                                                     <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-500 dark:text-slate-400">

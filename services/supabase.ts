@@ -130,6 +130,7 @@ export const supabaseService = {
         .map(t => ({
           id: t.id, title: t.title, description: t.description, completed: t.completed,
           completedAt: t.completed_at, assigneeId: t.assignee_id, dueDate: t.due_date, pinned: t.pinned || false,
+          isRecurring: t.is_recurring || false,
           cost: t.cost,
           position: t.position || 0, version: t.version || 1, updatedAt: t.updated_at
         }));
@@ -174,6 +175,7 @@ export const supabaseService = {
         await this.upsertEntity(client, 'flowtask_tasks', {
           id: t.id, branch_id: b.id, title: t.title, description: t.description, assignee_id: t.assigneeId,
           due_date: t.dueDate, completed: t.completed, completed_at: t.completedAt, 
+          is_recurring: t.isRecurring || false,
           cost: t.cost,
           position: t.position || 0, pinned: t.pinned || false, version: t.version
         });

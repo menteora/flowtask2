@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { useTask } from '../../context/TaskContext';
-import { X, Calendar, User, Trash2, CheckSquare, Square, Save, ArrowRight, Bold, Italic, List, Link as LinkIcon, Mail, Check, Eye, Edit2, Pin, CalendarDays, CheckCircle2, CornerDownRight, UserX, Copy, Banknote } from 'lucide-react';
+import { X, Calendar, User, Trash2, CheckSquare, Square, Save, ArrowRight, Bold, Italic, List, Link as LinkIcon, Mail, Check, Eye, Edit2, Pin, CalendarDays, CheckCircle2, CornerDownRight, UserX, Copy, Banknote, RefreshCw } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import { Branch, Person } from '../../types';
 import DatePicker from '../ui/DatePicker';
@@ -20,6 +20,7 @@ const TaskEditorModal: React.FC = () => {
   const [completed, setCompleted] = useState(false);
   const [completedAt, setCompletedAt] = useState('');
   const [pinned, setPinned] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
   const [cost, setCost] = useState('');
   
   const [isPreviewMode, setIsPreviewMode] = useState(false);
@@ -69,6 +70,7 @@ const TaskEditorModal: React.FC = () => {
             setDueDate(task.dueDate || '');
             setCompleted(task.completed);
             setPinned(task.pinned || false);
+            setIsRecurring(task.isRecurring || false);
             setCost(task.cost !== undefined && task.cost !== null ? task.cost.toString().replace('.', ',') : '');
             setTargetBranchId(''); 
             setIsPreviewMode(false); 
@@ -130,6 +132,7 @@ const TaskEditorModal: React.FC = () => {
           completed,
           completedAt: finalCompletedAt,
           pinned,
+          isRecurring,
           cost: parseCostInput(cost)
       });
       handleClose();
@@ -237,6 +240,13 @@ const TaskEditorModal: React.FC = () => {
                     title={pinned ? "Rimuovi da Focus" : "Aggiungi a Focus"}
                 >
                     <Pin className={`w-4 h-4 ${pinned ? 'fill-current' : ''}`} />
+                </button>
+                <button
+                    onClick={() => setIsRecurring(!isRecurring)}
+                    className={`p-1.5 rounded-full transition-colors ${isRecurring ? 'text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'text-slate-400 hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                    title={isRecurring ? "Task Ricorrente Attivo" : "Rendi Ricorrente"}
+                >
+                    <RefreshCw className={`w-4 h-4 ${isRecurring ? 'animate-spin-slow' : ''}`} />
                 </button>
             </div>
             <button onClick={handleClose} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
