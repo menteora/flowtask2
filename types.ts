@@ -31,6 +31,7 @@ export interface Task {
   cost?: number;
   position?: number; 
   pinned?: boolean; 
+  isRecurring?: boolean; 
   version: number;
   updatedAt?: string;
 }

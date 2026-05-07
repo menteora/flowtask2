@@ -373,6 +373,9 @@ const BranchNode: React.FC<BranchNodeProps> = ({ branchId }) => {
                                             className={`break-words whitespace-normal text-slate-600 dark:text-slate-300 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors ${task.completed ? 'line-through opacity-60' : ''} ${task.pinned ? 'font-bold text-slate-800 dark:text-slate-100' : ''}`}
                                         >
                                             {task.title}
+                                            {task.isRecurring && (
+                                                <RefreshCw className="inline-block w-2.5 h-2.5 ml-1 text-indigo-400 opacity-70" />
+                                            )}
                                         </span>
                                         {task.cost !== undefined && task.cost !== null && task.cost !== 0 && (
                                             <span className={`text-[8px] font-mono font-bold ml-1 ${task.cost > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>

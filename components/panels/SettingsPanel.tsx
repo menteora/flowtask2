@@ -272,6 +272,7 @@ CREATE TABLE public.flowtask_tasks (
     cost NUMERIC DEFAULT 0,
     position INTEGER DEFAULT 0,
     pinned BOOLEAN DEFAULT FALSE,
+    is_recurring BOOLEAN DEFAULT FALSE,
     version INTEGER DEFAULT 1,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     deleted_at TIMESTAMPTZ
@@ -312,7 +313,11 @@ CREATE POLICY "Enable all for authenticated users" ON public.flowtask_people FOR
 -- 9. Indici per prestazioni ottimali
 CREATE INDEX idx_flowtask_branches_parent_ids ON public.flowtask_branches USING GIN (parent_ids);
 CREATE INDEX idx_flowtask_tasks_branch_id ON public.flowtask_tasks (branch_id);
-CREATE INDEX idx_flowtask_people_project_id ON public.flowtask_people (project_id);`;
+CREATE INDEX idx_flowtask_people_project_id ON public.flowtask_people (project_id);
+
+-- NOTE PER AGGIORNAMENTO (Per chi ha già il database configurato):
+-- Se hai già le tabelle, esegui solo questo comando:
+-- ALTER TABLE public.flowtask_tasks ADD COLUMN is_recurring BOOLEAN DEFAULT FALSE;`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(fullSqlSetup);
