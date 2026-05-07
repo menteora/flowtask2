@@ -5,7 +5,7 @@ import { useBranch } from '../../context/BranchContext';
 import { useTask } from '../../context/TaskContext';
 import { BranchStatus, Branch, Person, BranchType } from '../../types';
 import { STATUS_CONFIG, PASTEL_COLORS } from '../../constants';
-import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash, Palette, Folder, Compass, Copy, Banknote, TrendingUp, TrendingDown, Pin } from 'lucide-react';
+import { X, Save, Trash2, CheckSquare, Square, Calendar, Plus, Link as LinkIcon, Unlink, FileText, ChevronUp, ChevronDown, Loader2, ArrowRight, Check, Move, CheckCircle2, UserPlus, Eye, Edit2, Archive, RefreshCw, CalendarDays, Bold, Italic, List, Zap, GitBranch, Search, Globe, LayoutGrid, Mail, Tag, Hash, Palette, Folder, Compass, Copy, Banknote, TrendingUp, TrendingDown, Pin, ListChecks } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Avatar from '../ui/Avatar';
 import DatePicker from '../ui/DatePicker';
@@ -59,6 +59,7 @@ const BranchDetails: React.FC = () => {
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [isBulkMoveMode, setIsBulkMoveMode] = useState(false);
   const [bulkMoveTargetId, setBulkMoveTargetId] = useState('');
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   useEffect(() => {
     if (branch) {
@@ -76,6 +77,7 @@ const BranchDetails: React.FC = () => {
       
       setShowDeleteConfirm(false); setIsLinkMode(false); setIsMigrateMode(false);
       setSelectedTaskIds([]); setIsBulkMoveMode(false); setIsBulkMode(false);
+      setIsSelectionMode(false);
       setPopupMode(null);
       setIsPreviewMode(false);
     }
@@ -494,13 +496,25 @@ const BranchDetails: React.FC = () => {
         <div className="space-y-3">
             <div className="flex items-center justify-between px-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1.5"><LayoutGrid className="w-3 h-3"/> Tasks</label>
-                <div className="flex gap-2">
-                    {selectedTaskIds.length > 0 && (
-                        <button onClick={() => setIsBulkMoveMode(!isBulkMoveMode)} className="text-[10px] font-bold text-amber-600 flex items-center gap-1">
+                <div className="flex gap-3">
+                    {isSelectionMode && selectedTaskIds.length > 0 && (
+                        <button onClick={() => setIsBulkMoveMode(!isBulkMoveMode)} className="text-[10px] font-bold text-amber-600 flex items-center gap-1 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-lg">
                            <Move className="w-2.5 h-2.5" /> Sposta ({selectedTaskIds.length})
                         </button>
                     )}
-                    <button onClick={() => setIsBulkMode(!isBulkMode)} className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline">{isBulkMode ? 'Vista Lista' : 'Modifica Bulk'}</button>
+                    <div className="flex items-center gap-2 border-l dark:border-slate-700 pl-3">
+                      <button 
+                        onClick={() => {
+                          setIsSelectionMode(!isSelectionMode);
+                          if (isSelectionMode) setSelectedTaskIds([]);
+                        }} 
+                        className={`text-[10px] font-bold flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${isSelectionMode ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                      >
+                        <ListChecks className="w-3 h-3" />
+                        {isSelectionMode ? 'Esci Selezione' : 'Seleziona'}
+                      </button>
+                      <button onClick={() => setIsBulkMode(!isBulkMode)} className="text-[10px] font-bold text-slate-500 hover:text-indigo-600 dark:text-indigo-400 hover:underline">{isBulkMode ? 'Lista' : 'Bulk Edit'}</button>
+                    </div>
                 </div>
             </div>
 
@@ -581,7 +595,7 @@ const BranchDetails: React.FC = () => {
                                             <Copy className="w-3.5 h-3.5" />
                                         </button>
                                         
-                                        {!task.completed && (
+                                        {!task.completed && !isSelectionMode && (
                                             <div className="flex flex-col mr-1">
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); moveTask(branch.id, task.id, 'up'); }}
@@ -599,13 +613,17 @@ const BranchDetails: React.FC = () => {
                                                 </button>
                                             </div>
                                         )}
-                                        <input 
-                                            type="checkbox" 
-                                            checked={selectedTaskIds.includes(task.id)} 
-                                            onChange={(e) => e.target.checked ? setSelectedTaskIds([...selectedTaskIds, task.id]) : setSelectedTaskIds(selectedTaskIds.filter(id => id !== task.id))} 
-                                            className="w-4 h-4 rounded border-amber-300 bg-amber-50 dark:bg-slate-700 text-amber-600 focus:ring-amber-500 mr-2 cursor-pointer shadow-sm" 
-                                        />
-                                        <button onClick={() => deleteTask(branch.id, task.id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                        {isSelectionMode && (
+                                          <input 
+                                              type="checkbox" 
+                                              checked={selectedTaskIds.includes(task.id)} 
+                                              onChange={(e) => e.target.checked ? setSelectedTaskIds([...selectedTaskIds, task.id]) : setSelectedTaskIds(selectedTaskIds.filter(id => id !== task.id))} 
+                                              className="w-4 h-4 rounded border-indigo-300 bg-white dark:bg-slate-700 text-indigo-600 focus:ring-indigo-500 mr-2 cursor-pointer shadow-sm animate-in zoom-in-50" 
+                                          />
+                                        )}
+                                        {!isSelectionMode && (
+                                          <button onClick={() => deleteTask(branch.id, task.id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                        )}
                                     </div>
                                 </motion.div>
                             );
